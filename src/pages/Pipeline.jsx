@@ -11,6 +11,14 @@ const STAGES = [
   { key: 'reporting',     label: 'Reporting' },
 ]
 
+function nextMonday() {
+  const d = new Date()
+  const day = d.getDay()
+  const add = day === 1 ? 0 : day === 0 ? 1 : 8 - day
+  d.setDate(d.getDate() + add)
+  return d.toISOString().slice(0, 10)
+}
+
 function daysLabel(dateStr) {
   if (!dateStr) return null
   const diff = Math.round((new Date(dateStr) - new Date()) / 86400000)
@@ -151,14 +159,18 @@ export default function Pipeline() {
   }
 
   async function moveRelease(release, newStage) {
+    const updates = { stage: newStage, updated_at: new Date().toISOString() }
+    if (newStage === 'tease_window' && !release.tease_start_date) {
+      updates.tease_start_date = nextMonday()
+    }
     const { error } = await supabase
       .from('releases')
-      .update({ stage: newStage, updated_at: new Date().toISOString() })
+      .update(updates)
       .eq('id', release.id)
 
     if (!error) {
       setReleases(prev =>
-        prev.map(r => r.id === release.id ? { ...r, stage: newStage } : r)
+        prev.map(r => r.id === release.id ? { ...r, stage: newStage, ...updates } : r)
       )
     }
   }
