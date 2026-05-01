@@ -1,24 +1,122 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
+import WaveSurfer from 'wavesurfer.js'
 
-const KEYS = ['C','C#/Db','D','D#/Eb','E','F','F#/Gb','G','G#/Ab','A','A#/Bb','B']
-const GENRES = ['Pop','Dance/Electronic','Hip-Hop/R&B','Afrobeats','Amapiano','House','Drill','Indie','Other']
+const KEYS = [
+  'C major','C# major','D major','D# major','E major','F major',
+  'F# major','G major','G# major','A major','A# major','B major',
+  'C minor','C# minor','D minor','D# minor','E minor','F minor',
+  'F# minor','G minor','G# minor','A minor','A# minor','B minor',
+]
 
-function AddTrackModal({ onClose, onCreated }) {
+const GENRES = [
+  'Electronic','Hip-Hop','R&B','Pop','Dance','House','Techno',
+  'Drum & Bass','Afrobeats','Reggaeton','Latin','Rock','Indie','Other',
+]
+
+function fmtTime(s) {
+  if (!s && s !== 0) return '0:00'
+  const m = Math.floor(s / 60)
+  const sec = Math.floor(s % 60)
+  return `${m}:${sec.toString().padStart(2, '0')}`
+}
+
+function TrackPlayer({ path, label }) {
+  const containerRef = useRef(null)
+  const wsRef = useRef(null)
+  const [playing, setPlaying] = useState(false)
+  const [ready, setReady] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [currentTime, setCurrentTime] = useState(0)
+  const [duration, setDuration] = useState(0)
+
+  useEffect(() => {
+    if (!path) return
+    let destroyed = false
+
+    supabase.storage.from('tracks').createSignedUrl(path, 3600).then(({ data }) => {
+      if (destroyed || !data?.signedUrl || !containerRef.current) return
+
+      const ws = WaveSurfer.create({
+        container: containerRef.current,
+        waveColor: '#d4cec5',
+        progressColor: '#a0723a',
+        cursorColor: '#a0723a',
+        height: 52,
+        barWidth: 2,
+        barGap: 1,
+        barRadius: 2,
+        normalize: true,
+      })
+
+      ws.load(data.signedUrl)
+      ws.on('ready', () => {
+        if (!destroyed) { setReady(true); setLoading(false); setDuration(ws.getDuration()) }
+      })
+      ws.on('timeupdate', t => { if (!destroyed) setCurrentTime(t) })
+      ws.on('finish', () => { if (!destroyed) setPlaying(false) })
+      wsRef.current = ws
+    })
+
+    return () => {
+      destroyed = true
+      if (wsRef.current) { wsRef.current.destroy(); wsRef.current = null }
+    }
+  }, [path])
+
+  function togglePlay() {
+    if (!wsRef.current || !ready) return
+    wsRef.current.playPause()
+    setPlaying(p => !p)
+  }
+
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 24px', borderTop: '1px solid var(--border)', background: '#faf8f5' }}>
+      {label && (
+        <span style={{ fontSize: '10px', letterSpacing: '0.06em', color: 'var(--bronze)', textTransform: 'uppercase', minWidth: '80px', fontWeight: 500 }}>
+          {label}
+        </span>
+      )}
+      <button
+        onClick={togglePlay}
+        disabled={!ready}
+        style={{
+          background: ready ? 'var(--bronze)' : 'var(--surface-2)',
+          border: 'none',
+          color: ready ? '#fff' : 'var(--border)',
+          width: '32px', height: '32px',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          cursor: ready ? 'pointer' : 'default',
+          fontSize: '12px', flexShrink: 0,
+          fontFamily: 'var(--font)',
+        }}
+      >
+        {loading ? '·' : playing ? '⏸' : '▶'}
+      </button>
+      <div ref={containerRef} style={{ flex: 1, minWidth: 0 }} />
+      <span style={{ fontSize: '10px', color: 'var(--text-muted)', flexShrink: 0, minWidth: '80px', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
+        {fmtTime(currentTime)} / {fmtTime(duration)}
+      </span>
+    </div>
+  )
+}
+
+function AddTrackModal({ onClose, onAdded }) {
   const { profile } = useAuth()
   const [form, setForm] = useState({
     title: '', writers: '', artist: '', producers: '',
     ownership: 'needs_permission', bpm: '', track_key: '',
     track_length: '', genre: '', contact_info: '', notes: '',
+    is_explicit: false,
   })
-  const [file, setFile]         = useState(null)
-  const [progress, setProgress] = useState(null)
-  const [error, setError]       = useState(null)
-  const [saving, setSaving]     = useState(false)
+  const [file, setFile]                 = useState(null)
+  const [instrumental, setInstrumental] = useState(null)
+  const [saving, setSaving]             = useState(false)
+  const [error, setError]               = useState(null)
 
-  const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
+  function set(k, v) { setForm(p => ({ ...p, [k]: v })) }
 
   async function handleSubmit(e) {
     e.preventDefault()
@@ -26,37 +124,45 @@ function AddTrackModal({ onClose, onCreated }) {
     setSaving(true); setError(null)
 
     let file_url = null
+    let instrumental_url = null
+
     if (file) {
-      setProgress('uploading audio...')
       const ext = file.name.split('.').pop()
       const path = `uncleared/${crypto.randomUUID()}.${ext}`
-      const { error: uploadErr } = await supabase.storage
-        .from('tracks').upload(path, file, { contentType: file.type })
-      if (uploadErr) { setError(uploadErr.message); setSaving(false); setProgress(null); return }
+      const { error: uploadErr } = await supabase.storage.from('tracks').upload(path, file, { contentType: file.type })
+      if (uploadErr) { setError(uploadErr.message); setSaving(false); return }
       file_url = path
-      setProgress(null)
+    }
+
+    if (instrumental) {
+      const ext = instrumental.name.split('.').pop()
+      const path = `uncleared/instrumental/${crypto.randomUUID()}.${ext}`
+      const { error: uploadErr } = await supabase.storage.from('tracks').upload(path, instrumental, { contentType: instrumental.type })
+      if (uploadErr) { setError(uploadErr.message); setSaving(false); return }
+      instrumental_url = path
     }
 
     const payload = {
-      title:        form.title.trim(),
-      artist:       form.artist.trim() || 'TBC',
-      writers:      form.writers.trim(),
-      producers:    form.producers.trim() || null,
-      ownership:    form.ownership,
-      bpm:          form.bpm ? parseInt(form.bpm) : null,
-      track_key:    form.track_key || null,
+      title: form.title.trim(),
+      writers: form.writers.trim(),
+      artist: form.artist.trim() || 'TBC',
+      producers: form.producers.trim() || null,
+      ownership: form.ownership,
+      bpm: form.bpm ? parseInt(form.bpm) : null,
+      track_key: form.track_key || null,
       track_length: form.track_length.trim() || null,
-      genre:        form.genre || null,
+      genre: form.genre || null,
       contact_info: form.contact_info.trim() || null,
-      notes:        form.notes.trim() || null,
-      cleared:      false,
+      notes: form.notes.trim() || null,
+      is_explicit: form.is_explicit,
       file_url,
+      instrumental_url,
       submitted_by: profile?.id,
     }
 
-    const { data, error } = await supabase.from('tracks').insert(payload).select().single()
-    if (error) { setError(error.message); setSaving(false); return }
-    onCreated(data)
+    const { data, error: insertErr } = await supabase.from('tracks').insert(payload).select().single()
+    if (insertErr) { setError(insertErr.message); setSaving(false); return }
+    onAdded(data)
     onClose()
   }
 
@@ -64,60 +170,44 @@ function AddTrackModal({ onClose, onCreated }) {
     <div style={s.overlay} onClick={e => e.target === e.currentTarget && onClose()}>
       <div style={s.modal}>
         <div style={s.modalHeader}>
-          <span style={s.modalTitle}>add track to pool</span>
+          <span style={s.modalTitle}>add track</span>
           <button style={s.closeBtn} onClick={onClose}>✕</button>
         </div>
-        <form onSubmit={handleSubmit} style={s.form}>
-
+        <form onSubmit={handleSubmit} style={s.modalForm}>
           <div style={s.formGrid}>
-            <div style={s.formCol}>
+            <div style={{ gridColumn: '1/-1' }}>
               <label style={s.label}>track title *</label>
               <input style={s.input} value={form.title} onChange={e => set('title', e.target.value)} required autoFocus />
             </div>
-            <div style={s.formCol}>
-              <label style={s.label}>artist name <span style={s.opt}>(or leave blank if TBC)</span></label>
-              <input style={s.input} value={form.artist} onChange={e => set('artist', e.target.value)} placeholder="TBC" />
+            <div style={{ gridColumn: '1/-1' }}>
+              <label style={s.label}>writer(s) *</label>
+              <input style={s.input} placeholder="Full legal names, comma separated" value={form.writers} onChange={e => set('writers', e.target.value)} required />
             </div>
-          </div>
-
-          <label style={s.label}>writer(s) *</label>
-          <input style={s.input} value={form.writers} onChange={e => set('writers', e.target.value)} required placeholder="Full legal names, comma separated" />
-
-          <label style={s.label}>producer(s) <span style={s.opt}>(optional)</span></label>
-          <input style={s.input} value={form.producers} onChange={e => set('producers', e.target.value)} placeholder="Full legal names, comma separated" />
-
-          <label style={s.label}>ownership *</label>
-          <div style={s.toggleRow}>
-            <button type="button"
-              style={{ ...s.toggleBtn, ...(form.ownership === 'needs_permission' ? s.toggleActive : {}) }}
-              onClick={() => set('ownership', 'needs_permission')}>
-              needs permission to release
-            </button>
-            <button type="button"
-              style={{ ...s.toggleBtn, ...(form.ownership === '100_owned' ? s.toggleActiveGreen : {}) }}
-              onClick={() => set('ownership', '100_owned')}>
-              100% owned
-            </button>
-          </div>
-
-          <div style={s.formGrid}>
-            <div style={s.formCol}>
-              <label style={s.label}>BPM <span style={s.opt}>(optional)</span></label>
-              <input style={s.input} type="number" min="60" max="200" value={form.bpm} onChange={e => set('bpm', e.target.value)} placeholder="e.g. 120" />
+            <div>
+              <label style={s.label}>artist <span style={{ color: 'var(--text-muted)' }}>(optional)</span></label>
+              <input style={s.input} placeholder="TBC if unknown" value={form.artist} onChange={e => set('artist', e.target.value)} />
             </div>
-            <div style={s.formCol}>
-              <label style={s.label}>key <span style={s.opt}>(optional)</span></label>
+            <div>
+              <label style={s.label}>producer(s)</label>
+              <input style={s.input} value={form.producers} onChange={e => set('producers', e.target.value)} />
+            </div>
+            <div>
+              <label style={s.label}>bpm</label>
+              <input style={s.input} type="number" value={form.bpm} onChange={e => set('bpm', e.target.value)} />
+            </div>
+            <div>
+              <label style={s.label}>key</label>
               <select style={s.input} value={form.track_key} onChange={e => set('track_key', e.target.value)}>
                 <option value="">—</option>
                 {KEYS.map(k => <option key={k}>{k}</option>)}
               </select>
             </div>
-            <div style={s.formCol}>
-              <label style={s.label}>length <span style={s.opt}>(optional)</span></label>
-              <input style={s.input} value={form.track_length} onChange={e => set('track_length', e.target.value)} placeholder="e.g. 2:45" />
+            <div>
+              <label style={s.label}>length</label>
+              <input style={s.input} placeholder="3:24" value={form.track_length} onChange={e => set('track_length', e.target.value)} />
             </div>
-            <div style={s.formCol}>
-              <label style={s.label}>genre <span style={s.opt}>(optional)</span></label>
+            <div>
+              <label style={s.label}>genre</label>
               <select style={s.input} value={form.genre} onChange={e => set('genre', e.target.value)}>
                 <option value="">—</option>
                 {GENRES.map(g => <option key={g}>{g}</option>)}
@@ -125,28 +215,51 @@ function AddTrackModal({ onClose, onCreated }) {
             </div>
           </div>
 
-          <label style={s.label}>contact info <span style={s.opt}>(optional)</span></label>
-          <input style={s.input} value={form.contact_info} onChange={e => set('contact_info', e.target.value)} placeholder="Email or @handle for writer/producer" />
-
-          <label style={s.label}>audio file <span style={s.opt}>(optional — goes to uncleared folder)</span></label>
-          <div style={s.fileWrap}>
-            <label style={s.fileLabel}>
-              <input type="file" accept=".mp3,.wav,.aiff,.aif,.flac,.m4a" style={{ display: 'none' }}
-                onChange={e => setFile(e.target.files[0] ?? null)} />
-              {file ? <span style={{ color: 'var(--text)' }}>✓ {file.name}</span> : <span>choose file...</span>}
-            </label>
-            {file && <button type="button" style={s.clearFile} onClick={() => setFile(null)}>✕</button>}
+          <label style={{ ...s.label, marginTop: '12px' }}>ownership</label>
+          <div style={s.toggleRow}>
+            {['needs_permission', '100_owned'].map(o => (
+              <button key={o} type="button"
+                style={{ ...s.toggleBtn, ...(form.ownership === o ? s.toggleBtnActive : {}) }}
+                onClick={() => set('ownership', o)}>
+                {o === '100_owned' ? '100% owned' : 'needs permission'}
+              </button>
+            ))}
           </div>
-          {progress && <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>{progress}</p>}
 
-          <label style={s.label}>notes <span style={s.opt}>(optional)</span></label>
-          <textarea style={{ ...s.input, resize: 'vertical', minHeight: '60px' }}
-            value={form.notes} onChange={e => set('notes', e.target.value)} />
+          <label style={{ ...s.label, marginTop: '14px' }}>explicit?</label>
+          <div style={s.toggleRow}>
+            {[['yes', true], ['no', false]].map(([lbl, val]) => (
+              <button key={lbl} type="button"
+                style={{ ...s.toggleBtn, ...(form.is_explicit === val ? s.toggleBtnActive : {}) }}
+                onClick={() => set('is_explicit', val)}>
+                {lbl}
+              </button>
+            ))}
+          </div>
+
+          <label style={{ ...s.label, marginTop: '14px' }}>track file <span style={{ color: 'var(--text-muted)' }}>(WAV)</span></label>
+          <label style={s.fileBtn}>
+            <input type="file" accept=".wav,.mp3,.aiff,.flac" style={{ display: 'none' }}
+              onChange={e => setFile(e.target.files[0])} />
+            {file ? file.name : '+ choose file'}
+          </label>
+
+          <label style={{ ...s.label, marginTop: '10px' }}>instrumental <span style={{ color: 'var(--text-muted)' }}>(optional)</span></label>
+          <label style={s.fileBtn}>
+            <input type="file" accept=".wav,.mp3,.aiff,.flac" style={{ display: 'none' }}
+              onChange={e => setInstrumental(e.target.files[0])} />
+            {instrumental ? instrumental.name : '+ choose file'}
+          </label>
+
+          <label style={{ ...s.label, marginTop: '10px' }}>contact info</label>
+          <input style={s.input} placeholder="Who submitted this?" value={form.contact_info} onChange={e => set('contact_info', e.target.value)} />
+
+          <label style={{ ...s.label, marginTop: '10px' }}>notes</label>
+          <textarea style={{ ...s.input, minHeight: '60px', resize: 'vertical' }} value={form.notes} onChange={e => set('notes', e.target.value)} />
 
           {error && <p style={s.error}>{error}</p>}
-
           <button type="submit" disabled={saving} style={s.submitBtn}>
-            {saving ? (progress ?? 'adding...') : 'add to uncleared pool'}
+            {saving ? 'saving...' : 'add track'}
           </button>
         </form>
       </div>
@@ -155,230 +268,226 @@ function AddTrackModal({ onClose, onCreated }) {
 }
 
 export default function TrackPool() {
-  const { profile } = useAuth()
   const navigate = useNavigate()
-  const [tracks, setTracks]       = useState([])
-  const [loading, setLoading]     = useState(true)
-  const [filter, setFilter]       = useState('all')
+  const { profile } = useAuth()
+  const [tracks, setTracks]           = useState([])
+  const [loading, setLoading]         = useState(true)
+  const [search, setSearch]           = useState('')
   const [genreFilter, setGenreFilter] = useState('all')
-  const [search, setSearch]       = useState('')
-  const [showModal, setShowModal] = useState(false)
-  const [clearing, setClearing]   = useState(null)
+  const [showModal, setShowModal]     = useState(false)
+  const [clearing, setClearing]       = useState(null)
+  const [deleting, setDeleting]       = useState(null)
+  const [playingId, setPlayingId]     = useState(null)
   const isCoordinator = !profile || profile.role === 'coordinator'
-  const canEdit = isCoordinator || profile?.role === 'selector'
 
   useEffect(() => { fetchTracks() }, [])
 
   async function fetchTracks() {
-    const { data } = await supabase
-      .from('tracks')
-      .select('*')
-      .order('created_at', { ascending: false })
-    if (data) setTracks(data)
+    const { data } = await supabase.from('tracks').select('*').order('created_at', { ascending: false })
+    setTracks(data ?? [])
     setLoading(false)
   }
 
   async function toggleCleared(track) {
     const newCleared = !track.cleared
     setClearing(track.id)
-
-    const { error } = await supabase
-      .from('tracks').update({ cleared: newCleared }).eq('id', track.id)
-
+    const { error } = await supabase.from('tracks').update({ cleared: newCleared }).eq('id', track.id)
     if (error) { setClearing(null); return }
-
     setTracks(prev => prev.map(t => t.id === track.id ? { ...t, cleared: newCleared } : t))
-
-    // Auto-create a release in pre-release when a track is cleared
     if (newCleared) {
-      const { data: release } = await supabase
-        .from('releases')
+      const { data: release } = await supabase.from('releases')
         .insert({ track_id: track.id, stage: 'pre_release', coordinator_id: profile?.id })
-        .select('id')
-        .single()
-      if (release) {
-        // Navigate to the new release detail
-        navigate(`/releases/${release.id}`)
-      }
+        .select('id').single()
+      if (release) navigate(`/releases/${release.id}`)
     }
-
     setClearing(null)
   }
 
-  async function getFile(track) {
-    const { data, error } = await supabase.storage
-      .from('tracks').createSignedUrl(track.file_url, 3600)
-    if (!error && data?.signedUrl) window.open(data.signedUrl, '_blank')
+  async function deleteTrack(track) {
+    if (!confirm(`Delete "${track.title}"? This will also remove any associated releases and cannot be undone.`)) return
+    setDeleting(track.id)
+    if (playingId === track.id) setPlayingId(null)
+
+    const { data: releases } = await supabase.from('releases').select('id').eq('track_id', track.id)
+    const ids = releases?.map(r => r.id) ?? []
+    if (ids.length > 0) {
+      await supabase.from('performance_data').delete().in('release_id', ids)
+      await supabase.from('tease_window_logs').delete().in('release_id', ids)
+      await supabase.from('checklist_items').delete().in('release_id', ids)
+      await supabase.from('releases').delete().in('id', ids)
+    }
+    if (track.file_url) await supabase.storage.from('tracks').remove([track.file_url])
+    if (track.instrumental_url) await supabase.storage.from('tracks').remove([track.instrumental_url])
+    await supabase.from('tracks').delete().eq('id', track.id)
+    setTracks(prev => prev.filter(t => t.id !== track.id))
+    setDeleting(null)
   }
 
-  function handleCreated(track) { setTracks(prev => [track, ...prev]) }
+  async function download(path) {
+    const { data } = await supabase.storage.from('tracks').createSignedUrl(path, 3600)
+    if (data?.signedUrl) window.open(data.signedUrl, '_blank')
+  }
 
-  const allGenres = [...new Set(tracks.map(t => t.genre).filter(Boolean))]
+  const genres = ['all', ...Array.from(new Set(tracks.map(t => t.genre).filter(Boolean)))]
 
-  const visible = tracks.filter(t => {
-    if (filter === 'cleared' && !t.cleared) return false
-    if (filter === 'uncleared' && t.cleared) return false
-    if (genreFilter !== 'all' && t.genre !== genreFilter) return false
-    if (search) {
-      const q = search.toLowerCase()
-      return (
-        t.title?.toLowerCase().includes(q) ||
-        t.artist?.toLowerCase().includes(q) ||
-        t.writers?.toLowerCase().includes(q) ||
-        t.genre?.toLowerCase().includes(q) ||
-        String(t.bpm ?? '').includes(q) ||
-        t.track_key?.toLowerCase().includes(q)
-      )
-    }
-    return true
+  const filtered = tracks.filter(t => {
+    const q = search.toLowerCase()
+    const matchSearch = !q || [t.title, t.artist, t.writers, t.genre, t.bpm?.toString(), t.track_key]
+      .some(v => v?.toLowerCase().includes(q))
+    const matchGenre = genreFilter === 'all' || t.genre === genreFilter
+    return matchSearch && matchGenre
   })
+
+  if (loading) return <div style={s.loading}>loading tracks...</div>
 
   return (
     <div style={s.page}>
       <div style={s.header}>
         <span style={s.pageTitle}>TRACK POOL</span>
         <div style={s.headerRight}>
-          <input style={s.search} placeholder="search title, artist, writer, BPM, key..."
-            value={search} onChange={e => setSearch(e.target.value)} />
-          <div style={s.filters}>
-            {['all', 'cleared', 'uncleared'].map(f => (
-              <button key={f}
-                style={{ ...s.filterBtn, ...(filter === f ? s.filterActive : {}) }}
-                onClick={() => setFilter(f)}>{f}</button>
-            ))}
-          </div>
-          {allGenres.length > 0 && (
-            <div style={s.filters}>
-              <button style={{ ...s.filterBtn, ...(genreFilter === 'all' ? s.filterActive : {}) }}
-                onClick={() => setGenreFilter('all')}>all genres</button>
-              {allGenres.map(g => (
-                <button key={g}
-                  style={{ ...s.filterBtn, ...(genreFilter === g ? s.filterActive : {}) }}
-                  onClick={() => setGenreFilter(g)}>{g}</button>
-              ))}
-            </div>
-          )}
-          {canEdit && (
+          <input style={s.search} placeholder="search..." value={search} onChange={e => setSearch(e.target.value)} />
+          <select style={s.filter} value={genreFilter} onChange={e => setGenreFilter(e.target.value)}>
+            {genres.map(g => <option key={g} value={g}>{g}</option>)}
+          </select>
+          {isCoordinator && (
             <button style={s.addBtn} onClick={() => setShowModal(true)}>+ add track</button>
           )}
         </div>
       </div>
 
       <div style={s.tableWrap}>
-        {loading ? (
-          <div style={s.empty}>loading...</div>
-        ) : visible.length === 0 ? (
-          <div style={s.empty}>no tracks found</div>
-        ) : (
-          <table style={s.table}>
-            <thead>
-              <tr>
-                <th style={s.th}>title</th>
-                <th style={s.th}>artist</th>
-                <th style={s.th}>writer(s)</th>
-                <th style={s.th}>ownership</th>
-                <th style={s.th}>bpm / key</th>
-                <th style={s.th}>genre</th>
-                <th style={{ ...s.th, textAlign: 'center' }}>file</th>
-                <th style={{ ...s.th, textAlign: 'center' }}>status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {visible.map((track, i) => (
-                <tr key={track.id} style={{ background: i % 2 === 0 ? 'var(--bg)' : 'var(--surface)' }}>
-                  <td style={s.td}><strong>{track.title}</strong></td>
-                  <td style={s.td}>{track.artist === 'TBC' ? <span style={{ color: 'var(--text-muted)' }}>TBC</span> : track.artist}</td>
-                  <td style={{ ...s.td, color: 'var(--text-muted)' }}>{track.writers ?? '—'}</td>
-                  <td style={s.td}>
-                    <span style={{
-                      fontSize: '10px', padding: '2px 7px', border: '1px solid',
-                      borderColor: track.ownership === '100_owned' ? '#a8c898' : 'var(--border)',
-                      color: track.ownership === '100_owned' ? '#5a7a4a' : 'var(--text-muted)',
-                      background: track.ownership === '100_owned' ? '#f0f5ec' : 'var(--surface-2)',
-                    }}>
-                      {track.ownership === '100_owned' ? '100% owned' : 'needs permission'}
-                    </span>
-                  </td>
-                  <td style={{ ...s.td, color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
-                    {[track.bpm && `${track.bpm} BPM`, track.track_key].filter(Boolean).join(' · ') || '—'}
-                  </td>
-                  <td style={{ ...s.td, color: 'var(--text-muted)' }}>{track.genre ?? '—'}</td>
-                  <td style={{ ...s.td, textAlign: 'center' }}>
-                    {track.file_url ? (
-                      <button style={s.fileBtn} onClick={() => getFile(track)}>↓ file</button>
-                    ) : <span style={{ color: 'var(--border)' }}>—</span>}
-                  </td>
-                  <td style={{ ...s.td, textAlign: 'center' }}>
-                    {canEdit ? (
-                      <button
-                        disabled={clearing === track.id}
-                        style={{ ...s.clearedBtn, ...(track.cleared ? s.clearedOn : s.clearedOff) }}
-                        onClick={() => toggleCleared(track)}
-                        title={track.cleared ? 'mark uncleared' : 'mark cleared — creates a release'}
-                      >
-                        {clearing === track.id ? '...' : track.cleared ? 'cleared' : 'uncleared'}
-                      </button>
-                    ) : (
-                      <span style={track.cleared ? s.clearedOn : s.clearedOff}>
-                        {track.cleared ? 'cleared' : 'uncleared'}
-                      </span>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
+        <div style={s.tableHead}>
+          <div style={{ ...s.th, flex: '2 1 180px' }}>title</div>
+          <div style={{ ...s.th, flex: '1 1 110px' }}>artist</div>
+          <div style={{ ...s.th, flex: '2 1 160px' }}>writers</div>
+          <div style={{ ...s.th, flex: '0 0 110px' }}>ownership</div>
+          <div style={{ ...s.th, flex: '0 0 100px' }}>bpm / key</div>
+          <div style={{ ...s.th, flex: '0 0 80px' }}>genre</div>
+          <div style={{ ...s.th, flex: '0 0 40px' }}>exp</div>
+          <div style={{ ...s.th, flex: '0 0 80px' }}>audio</div>
+          <div style={{ ...s.th, flex: '0 0 64px' }}>cleared</div>
+          {isCoordinator && <div style={{ ...s.th, flex: '0 0 36px' }} />}
+        </div>
+
+        <div style={s.tableBody}>
+          {filtered.length === 0 && <div style={s.empty}>no tracks found</div>}
+          {filtered.map(track => (
+            <div key={track.id} style={{ opacity: deleting === track.id ? 0.4 : 1 }}>
+              <div style={s.row}>
+                <div style={{ ...s.td, flex: '2 1 180px', fontWeight: 500 }}>{track.title}</div>
+                <div style={{ ...s.td, flex: '1 1 110px', color: track.artist === 'TBC' ? 'var(--text-muted)' : 'var(--text)' }}>
+                  {track.artist ?? '—'}
+                </div>
+                <div style={{ ...s.td, flex: '2 1 160px', color: 'var(--text-muted)', fontSize: '11px' }}>
+                  {track.writers ?? '—'}
+                </div>
+                <div style={{ ...s.td, flex: '0 0 110px' }}>
+                  <span style={{
+                    fontSize: '10px', padding: '2px 6px', letterSpacing: '0.04em',
+                    background: track.ownership === '100_owned' ? '#eaf2e8' : '#f5ede0',
+                    color: track.ownership === '100_owned' ? '#4a7a3a' : 'var(--bronze)',
+                    border: `1px solid ${track.ownership === '100_owned' ? '#b8d8b0' : 'var(--bronze-dim)'}`,
+                  }}>
+                    {track.ownership === '100_owned' ? '100% owned' : 'needs perm'}
+                  </span>
+                </div>
+                <div style={{ ...s.td, flex: '0 0 100px', fontSize: '11px', color: 'var(--text-muted)' }}>
+                  {[track.bpm, track.track_key].filter(Boolean).join(' / ') || '—'}
+                </div>
+                <div style={{ ...s.td, flex: '0 0 80px', fontSize: '11px' }}>{track.genre ?? '—'}</div>
+                <div style={{ ...s.td, flex: '0 0 40px', justifyContent: 'center' }}>
+                  {track.is_explicit
+                    ? <span style={{ fontSize: '10px', background: '#2a2520', color: '#fff', padding: '1px 5px', letterSpacing: '0.04em' }}>E</span>
+                    : <span style={{ fontSize: '10px', color: 'var(--border)' }}>—</span>}
+                </div>
+                <div style={{ ...s.td, flex: '0 0 80px', gap: '5px' }}>
+                  {track.file_url && (
+                    <button
+                      style={{ ...s.audioBtn, background: playingId === track.id ? 'var(--bronze)' : 'var(--surface-2)', color: playingId === track.id ? '#fff' : 'var(--text-muted)' }}
+                      onClick={() => setPlayingId(playingId === track.id ? null : track.id)}
+                      title="Play"
+                    >
+                      {playingId === track.id ? '⏹' : '▶'}
+                    </button>
+                  )}
+                  {track.file_url && (
+                    <button style={s.audioBtn} onClick={() => download(track.file_url)} title="Download">↓</button>
+                  )}
+                </div>
+                <div style={{ ...s.td, flex: '0 0 64px', justifyContent: 'center' }}>
+                  <input type="checkbox" checked={track.cleared ?? false}
+                    disabled={clearing === track.id || !isCoordinator}
+                    onChange={() => toggleCleared(track)}
+                    style={{ accentColor: 'var(--bronze)', width: '14px', height: '14px', cursor: 'pointer' }} />
+                </div>
+                {isCoordinator && (
+                  <div style={{ ...s.td, flex: '0 0 36px', justifyContent: 'center' }}>
+                    <button style={s.deleteBtn} onClick={() => deleteTrack(track)}
+                      disabled={deleting === track.id} title="Delete track">×</button>
+                  </div>
+                )}
+              </div>
+
+              {playingId === track.id && (
+                <div style={s.playerPanel}>
+                  <TrackPlayer path={track.file_url} label={track.instrumental_url ? 'Main' : null} />
+                  {track.instrumental_url && (
+                    <TrackPlayer path={track.instrumental_url} label="Instrumental" />
+                  )}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
       </div>
 
       <div style={s.footer}>
-        {tracks.length} tracks · {tracks.filter(t => t.cleared).length} cleared · {tracks.filter(t => !t.cleared).length} uncleared
-        {' · '}
-        <span style={{ color: 'var(--bronze)' }}>toggling a track to cleared automatically creates a release</span>
+        {filtered.length} track{filtered.length !== 1 ? 's' : ''} · toggling cleared auto-creates a release in pre-release
       </div>
 
-      {showModal && <AddTrackModal onClose={() => setShowModal(false)} onCreated={handleCreated} />}
+      {showModal && (
+        <AddTrackModal
+          onClose={() => setShowModal(false)}
+          onAdded={t => setTracks(prev => [t, ...prev])}
+        />
+      )}
     </div>
   )
 }
 
 const s = {
-  page:   { display: 'flex', flexDirection: 'column', height: 'calc(100vh - 48px)' },
-  header: { display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', padding: '20px 24px 16px', borderBottom: '1px solid var(--border)', flexWrap: 'wrap', gap: '12px' },
-  pageTitle: { fontSize: '11px', letterSpacing: '0.12em', color: 'var(--text-muted)', fontWeight: 500 },
-  headerRight: { display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' },
-  search: { background: 'var(--bg)', border: '1px solid var(--border)', padding: '7px 12px', color: 'var(--text)', fontSize: '12px', fontFamily: 'var(--font)', width: '280px', outline: 'none' },
-  filters: { display: 'flex', border: '1px solid var(--border)', overflow: 'hidden' },
-  filterBtn: { background: 'var(--surface)', border: 'none', borderRight: '1px solid var(--border)', padding: '7px 10px', fontSize: '11px', letterSpacing: '0.04em', color: 'var(--text-muted)', cursor: 'pointer', fontFamily: 'var(--font)' },
-  filterActive: { background: 'var(--surface-2)', color: 'var(--text)', fontWeight: 500 },
-  addBtn: { background: 'var(--bronze)', color: '#fff', border: 'none', padding: '7px 14px', fontSize: '12px', letterSpacing: '0.05em', cursor: 'pointer', fontFamily: 'var(--font)' },
-  tableWrap: { flex: 1, overflowY: 'auto' },
-  table: { width: '100%', borderCollapse: 'collapse' },
-  th: { fontSize: '10px', letterSpacing: '0.08em', color: 'var(--text-muted)', fontWeight: 500, textAlign: 'left', padding: '10px 14px', background: 'var(--surface)', borderBottom: '1px solid var(--border)', position: 'sticky', top: 0, textTransform: 'uppercase' },
-  td: { fontSize: '12px', padding: '9px 14px', borderBottom: '1px solid var(--border)', color: 'var(--text)', verticalAlign: 'middle' },
-  clearedBtn: { border: '1px solid', padding: '2px 8px', fontSize: '10px', letterSpacing: '0.05em', cursor: 'pointer', fontFamily: 'var(--font)', background: 'none' },
-  clearedOn:  { color: 'var(--bronze)', borderColor: 'var(--bronze-dim)', background: '#f5ede0' },
-  clearedOff: { color: 'var(--text-muted)', borderColor: 'var(--border)' },
-  fileBtn: { background: 'none', border: '1px solid var(--border)', color: 'var(--bronze)', padding: '3px 8px', fontSize: '10px', letterSpacing: '0.05em', cursor: 'pointer', fontFamily: 'var(--font)' },
-  footer: { padding: '10px 24px', fontSize: '11px', color: 'var(--text-muted)', borderTop: '1px solid var(--border)', background: 'var(--surface)', letterSpacing: '0.04em' },
-  overlay: { position: 'fixed', inset: 0, background: 'rgba(42,37,32,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200 },
-  modal: { background: 'var(--surface)', border: '1px solid var(--border)', width: '100%', maxWidth: '560px', padding: '32px', maxHeight: '90vh', overflowY: 'auto' },
-  modalHeader: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px' },
-  modalTitle: { fontSize: '12px', letterSpacing: '0.08em', fontWeight: 500 },
-  closeBtn: { background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: '14px', cursor: 'pointer', padding: 0 },
-  form: { display: 'flex', flexDirection: 'column', gap: '6px' },
-  formGrid: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' },
-  formCol: { display: 'flex', flexDirection: 'column', gap: '6px' },
-  label: { fontSize: '11px', color: 'var(--text-muted)', letterSpacing: '0.06em', marginTop: '10px' },
-  opt: { color: 'var(--border)', fontStyle: 'italic' },
-  input: { background: 'var(--bg)', border: '1px solid var(--border)', padding: '9px 12px', color: 'var(--text)', outline: 'none', width: '100%', fontFamily: 'var(--font)', fontSize: '12px' },
-  toggleRow: { display: 'flex', border: '1px solid var(--border)', overflow: 'hidden' },
-  toggleBtn: { flex: 1, background: 'var(--bg)', border: 'none', borderRight: '1px solid var(--border)', padding: '9px', fontSize: '11px', letterSpacing: '0.04em', color: 'var(--text-muted)', cursor: 'pointer', fontFamily: 'var(--font)' },
-  toggleActive: { background: 'var(--bronze)', color: '#fff' },
-  toggleActiveGreen: { background: '#5a7a4a', color: '#fff' },
-  fileWrap: { display: 'flex', alignItems: 'center', gap: '8px' },
-  fileLabel: { flex: 1, background: 'var(--bg)', border: '1px solid var(--border)', padding: '9px 12px', fontSize: '12px', color: 'var(--text-muted)', cursor: 'pointer', display: 'block' },
-  clearFile: { background: 'none', border: '1px solid var(--border)', color: 'var(--text-muted)', padding: '9px 10px', cursor: 'pointer', fontSize: '12px', fontFamily: 'var(--font)' },
-  error: { fontSize: '11px', color: '#b84040', marginTop: '6px' },
-  submitBtn: { marginTop: '20px', background: 'var(--bronze)', color: '#fff', border: 'none', padding: '11px', letterSpacing: '0.06em', fontSize: '12px', cursor: 'pointer', fontFamily: 'var(--font)' },
+  page:        { display: 'flex', flexDirection: 'column', height: 'calc(100vh - 48px)', overflow: 'hidden' },
+  loading:     { padding: '48px 24px', color: 'var(--text-muted)', fontSize: '12px' },
+  header:      { display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 24px', borderBottom: '1px solid var(--border)', gap: '12px' },
+  pageTitle:   { fontSize: '11px', letterSpacing: '0.12em', color: 'var(--text-muted)', fontWeight: 500 },
+  headerRight: { display: 'flex', gap: '8px', alignItems: 'center' },
+  search:      { background: 'var(--surface)', border: '1px solid var(--border)', padding: '7px 12px', fontSize: '12px', fontFamily: 'var(--font)', color: 'var(--text)', outline: 'none', width: '180px' },
+  filter:      { background: 'var(--surface)', border: '1px solid var(--border)', padding: '7px 10px', fontSize: '12px', fontFamily: 'var(--font)', color: 'var(--text)', outline: 'none' },
+  addBtn:      { background: 'var(--bronze)', color: '#fff', border: 'none', padding: '7px 14px', fontSize: '12px', letterSpacing: '0.05em', cursor: 'pointer', fontFamily: 'var(--font)' },
+  tableWrap:   { flex: 1, overflow: 'auto' },
+  tableHead:   { display: 'flex', padding: '0 24px', background: 'var(--surface)', borderBottom: '1px solid var(--border)', position: 'sticky', top: 0, zIndex: 10 },
+  th:          { fontSize: '10px', letterSpacing: '0.08em', color: 'var(--text-muted)', fontWeight: 500, textTransform: 'uppercase', padding: '10px 8px' },
+  tableBody:   { padding: '0 24px' },
+  row:         { display: 'flex', alignItems: 'center', borderBottom: '1px solid var(--border)', minHeight: '44px' },
+  td:          { fontSize: '12px', color: 'var(--text)', padding: '8px', display: 'flex', alignItems: 'center', overflow: 'hidden' },
+  empty:       { padding: '40px 8px', color: 'var(--text-muted)', fontSize: '12px' },
+  footer:      { padding: '10px 24px', borderTop: '1px solid var(--border)', fontSize: '11px', color: 'var(--text-muted)', background: 'var(--surface)' },
+  audioBtn:    { background: 'var(--surface-2)', border: '1px solid var(--border)', color: 'var(--text-muted)', padding: '3px 7px', fontSize: '11px', cursor: 'pointer', fontFamily: 'var(--font)' },
+  deleteBtn:   { background: 'none', border: '1px solid var(--border)', color: 'var(--text-muted)', width: '24px', height: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: '14px', fontFamily: 'var(--font)', padding: 0 },
+  playerPanel: { borderBottom: '1px solid var(--border)', background: '#faf8f5' },
+  overlay:     { position: 'fixed', inset: 0, background: 'rgba(42,37,32,0.4)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', zIndex: 200, overflowY: 'auto', padding: '40px 24px' },
+  modal:       { background: 'var(--surface)', border: '1px solid var(--border)', width: '100%', maxWidth: '520px', padding: '32px' },
+  modalHeader: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' },
+  modalTitle:  { fontSize: '12px', letterSpacing: '0.08em', fontWeight: 500 },
+  closeBtn:    { background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: '14px', cursor: 'pointer', padding: 0 },
+  modalForm:   { display: 'flex', flexDirection: 'column', gap: '4px' },
+  formGrid:    { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' },
+  label:       { fontSize: '11px', color: 'var(--text-muted)', letterSpacing: '0.06em', marginTop: '8px', display: 'block' },
+  input:       { background: 'var(--bg)', border: '1px solid var(--border)', padding: '8px 10px', color: 'var(--text)', outline: 'none', width: '100%', fontFamily: 'var(--font)', fontSize: '12px' },
+  toggleRow:   { display: 'flex', gap: '6px', marginTop: '4px' },
+  toggleBtn:   { background: 'var(--surface-2)', border: '1px solid var(--border)', padding: '6px 12px', fontSize: '11px', letterSpacing: '0.04em', cursor: 'pointer', color: 'var(--text-muted)', fontFamily: 'var(--font)' },
+  toggleBtnActive: { background: 'var(--bronze)', color: '#fff', borderColor: 'var(--bronze)' },
+  fileBtn:     { background: 'var(--bg)', border: '1px dashed var(--border)', padding: '10px', fontSize: '12px', color: 'var(--text-muted)', cursor: 'pointer', display: 'block', marginTop: '4px', textAlign: 'center', fontFamily: 'var(--font)' },
+  error:       { fontSize: '11px', color: '#b84040', marginTop: '6px' },
+  submitBtn:   { marginTop: '20px', background: 'var(--bronze)', color: '#fff', border: 'none', padding: '11px', letterSpacing: '0.06em', fontSize: '12px', cursor: 'pointer', fontFamily: 'var(--font)' },
 }
