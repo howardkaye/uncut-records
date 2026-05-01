@@ -46,9 +46,7 @@ export default function Nav() {
           color: isActive ? 'var(--bronze)' : 'var(--text-muted)',
           borderColor: isActive ? 'var(--bronze-dim)' : 'var(--border)',
         })}>
-          {profile?.full_name
-            ? profile.full_name.split(' ')[0].toLowerCase()
-            : profile?.role ?? 'profile'}
+          profile
         </NavLink>
         <button onClick={handleSignOut} style={styles.signOut}>sign out</button>
       </div>

@@ -1,12 +1,19 @@
 import { useState } from 'react'
 import { useAuth } from '../context/AuthContext'
+import { supabase } from '../lib/supabase'
 
 export default function Login() {
   const { signIn } = useAuth()
-  const [email, setEmail] = useState('')
+  const [email, setEmail]       = useState('')
   const [password, setPassword] = useState('')
-  const [error, setError] = useState(null)
-  const [loading, setLoading] = useState(false)
+  const [error, setError]       = useState(null)
+  const [loading, setLoading]   = useState(false)
+
+  const [forgotMode, setForgotMode]   = useState(false)
+  const [resetEmail, setResetEmail]   = useState('')
+  const [resetSent, setResetSent]     = useState(false)
+  const [resetLoading, setResetLoading] = useState(false)
+  const [resetError, setResetError]   = useState(null)
 
   async function handleSubmit(e) {
     e.preventDefault()
@@ -17,40 +24,73 @@ export default function Login() {
     setLoading(false)
   }
 
+  async function handleForgot(e) {
+    e.preventDefault()
+    setResetError(null)
+    setResetLoading(true)
+    const { error } = await supabase.auth.resetPasswordForEmail(resetEmail, {
+      redirectTo: 'https://uncut-records.vercel.app/profile',
+    })
+    if (error) { setResetError(error.message); setResetLoading(false); return }
+    setResetSent(true)
+    setResetLoading(false)
+  }
+
   return (
     <div style={styles.wrapper}>
       <div style={styles.card}>
         <div style={styles.wordmark}>UNCUT RECORDS</div>
         <p style={styles.sub}>release management</p>
 
-        <form onSubmit={handleSubmit} style={styles.form}>
-          <label style={styles.label}>email</label>
-          <input
-            type="email"
-            value={email}
-            onChange={e => setEmail(e.target.value)}
-            required
-            autoFocus
-            style={styles.input}
-            placeholder="you@uncutrecords.com"
-          />
+        {forgotMode ? (
+          resetSent ? (
+            <div>
+              <p style={{ fontSize: '12px', color: 'var(--text)', lineHeight: 1.6, marginBottom: '20px' }}>
+                Reset link sent to <strong>{resetEmail}</strong>. Check your inbox and click the link to set a new password.
+              </p>
+              <button style={styles.ghost} onClick={() => { setForgotMode(false); setResetSent(false) }}>
+                ← back to sign in
+              </button>
+            </div>
+          ) : (
+            <form onSubmit={handleForgot} style={styles.form}>
+              <p style={{ fontSize: '12px', color: 'var(--text-muted)', lineHeight: 1.6, marginBottom: '8px' }}>
+                Enter your email and we'll send you a reset link.
+              </p>
+              <label style={styles.label}>email</label>
+              <input type="email" value={resetEmail} onChange={e => setResetEmail(e.target.value)}
+                required autoFocus style={styles.input} placeholder="you@example.com" />
+              {resetError && <p style={styles.error}>{resetError}</p>}
+              <button type="submit" disabled={resetLoading} style={{ ...styles.button, marginTop: '20px' }}>
+                {resetLoading ? 'sending...' : 'send reset link'}
+              </button>
+              <button type="button" style={{ ...styles.ghost, marginTop: '12px' }}
+                onClick={() => setForgotMode(false)}>
+                ← back to sign in
+              </button>
+            </form>
+          )
+        ) : (
+          <form onSubmit={handleSubmit} style={styles.form}>
+            <label style={styles.label}>email</label>
+            <input type="email" value={email} onChange={e => setEmail(e.target.value)}
+              required autoFocus style={styles.input} placeholder="you@uncutrecords.com" />
 
-          <label style={styles.label}>password</label>
-          <input
-            type="password"
-            value={password}
-            onChange={e => setPassword(e.target.value)}
-            required
-            style={styles.input}
-            placeholder="••••••••"
-          />
+            <label style={styles.label}>password</label>
+            <input type="password" value={password} onChange={e => setPassword(e.target.value)}
+              required style={styles.input} placeholder="••••••••" />
 
-          {error && <p style={styles.error}>{error}</p>}
+            {error && <p style={styles.error}>{error}</p>}
 
-          <button type="submit" disabled={loading} style={styles.button}>
-            {loading ? 'signing in...' : 'sign in'}
-          </button>
-        </form>
+            <button type="submit" disabled={loading} style={styles.button}>
+              {loading ? 'signing in...' : 'sign in'}
+            </button>
+
+            <button type="button" style={styles.ghost} onClick={() => setForgotMode(true)}>
+              forgot password?
+            </button>
+          </form>
+        )}
       </div>
     </div>
   )
@@ -102,7 +142,8 @@ const styles = {
     color: 'var(--text)',
     outline: 'none',
     width: '100%',
-    transition: 'border-color 0.15s',
+    fontFamily: 'var(--font)',
+    fontSize: '12px',
   },
   error: {
     fontSize: '11px',
@@ -117,6 +158,19 @@ const styles = {
     padding: '12px',
     letterSpacing: '0.08em',
     fontWeight: '500',
-    transition: 'background 0.15s',
+    cursor: 'pointer',
+    fontFamily: 'var(--font)',
+    fontSize: '12px',
+  },
+  ghost: {
+    background: 'none',
+    border: 'none',
+    color: 'var(--text-muted)',
+    fontSize: '11px',
+    letterSpacing: '0.06em',
+    cursor: 'pointer',
+    padding: '8px 0 0',
+    textAlign: 'left',
+    fontFamily: 'var(--font)',
   },
 }

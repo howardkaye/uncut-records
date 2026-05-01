@@ -18,9 +18,12 @@ export default function Profile() {
   async function saveProfile(e) {
     e.preventDefault()
     setSaving(true); setSaved(false)
-    await supabase.from('users').update({ full_name: name.trim(), phone: phone.trim() }).eq('id', profile.id)
-    setSaving(false); setSaved(true)
-    setTimeout(() => setSaved(false), 2500)
+    const { error } = await supabase
+      .from('users')
+      .update({ full_name: name.trim(), phone: phone.trim() })
+      .eq('id', profile.id)
+    setSaving(false)
+    if (!error) { setSaved(true); setTimeout(() => setSaved(false), 2500) }
   }
 
   async function changePassword(e) {
