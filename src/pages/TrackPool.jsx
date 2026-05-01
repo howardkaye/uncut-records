@@ -7,6 +7,8 @@ function AddTrackModal({ onClose, onCreated }) {
   const [title, setTitle]   = useState('')
   const [artist, setArtist] = useState('')
   const [notes, setNotes]   = useState('')
+  const [file, setFile]     = useState(null)
+  const [progress, setProgress] = useState(null)
   const [error, setError]   = useState(null)
   const [saving, setSaving] = useState(false)
 
@@ -16,9 +18,23 @@ function AddTrackModal({ onClose, onCreated }) {
     setSaving(true)
     setError(null)
 
+    let file_url = null
+
+    if (file) {
+      setProgress('uploading...')
+      const ext = file.name.split('.').pop()
+      const path = `${crypto.randomUUID()}.${ext}`
+      const { error: uploadErr } = await supabase.storage
+        .from('tracks')
+        .upload(path, file, { contentType: file.type })
+      if (uploadErr) { setError(uploadErr.message); setSaving(false); setProgress(null); return }
+      file_url = path
+      setProgress(null)
+    }
+
     const { data, error } = await supabase
       .from('tracks')
-      .insert({ title: title.trim(), artist: artist.trim(), notes: notes.trim() || null, submitted_by: profile?.id })
+      .insert({ title: title.trim(), artist: artist.trim(), notes: notes.trim() || null, submitted_by: profile?.id, file_url })
       .select()
       .single()
 
@@ -41,13 +57,34 @@ function AddTrackModal({ onClose, onCreated }) {
           <label style={s.label}>artist</label>
           <input style={s.input} value={artist} onChange={e => setArtist(e.target.value)} required />
 
+          <label style={s.label}>audio file <span style={{ color: 'var(--text-muted)' }}>(optional)</span></label>
+          <div style={s.fileWrap}>
+            <label style={s.fileLabel}>
+              <input
+                type="file"
+                accept=".mp3,.wav,.aiff,.aif,.flac,.m4a"
+                style={{ display: 'none' }}
+                onChange={e => setFile(e.target.files[0] ?? null)}
+              />
+              {file ? (
+                <span style={{ color: 'var(--text)' }}>✓ {file.name}</span>
+              ) : (
+                <span>choose file...</span>
+              )}
+            </label>
+            {file && (
+              <button type="button" style={s.clearFile} onClick={() => setFile(null)}>✕</button>
+            )}
+          </div>
+          {progress && <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>{progress}</p>}
+
           <label style={s.label}>notes <span style={{ color: 'var(--text-muted)' }}>(optional)</span></label>
           <textarea style={{ ...s.input, resize: 'vertical', minHeight: '72px' }} value={notes} onChange={e => setNotes(e.target.value)} />
 
           {error && <p style={s.error}>{error}</p>}
 
           <button type="submit" disabled={saving} style={s.submitBtn}>
-            {saving ? 'adding...' : 'add track'}
+            {saving ? (progress ?? 'adding...') : 'add track'}
           </button>
         </form>
       </div>
@@ -88,6 +125,13 @@ export default function TrackPool() {
 
   function handleCreated(track) {
     setTracks(prev => [track, ...prev])
+  }
+
+  async function getFile(track) {
+    const { data, error } = await supabase.storage
+      .from('tracks')
+      .createSignedUrl(track.file_url, 3600)
+    if (!error && data?.signedUrl) window.open(data.signedUrl, '_blank')
   }
 
   const visible = tracks.filter(t => {
@@ -141,6 +185,7 @@ export default function TrackPool() {
                 <th style={s.th}>artist</th>
                 <th style={s.th}>added</th>
                 <th style={s.th}>notes</th>
+                <th style={{ ...s.th, textAlign: 'center' }}>file</th>
                 <th style={{ ...s.th, textAlign: 'center' }}>cleared</th>
               </tr>
             </thead>
@@ -154,6 +199,15 @@ export default function TrackPool() {
                   </td>
                   <td style={{ ...s.td, color: 'var(--text-muted)', maxWidth: '240px' }}>
                     {track.notes ?? '—'}
+                  </td>
+                  <td style={{ ...s.td, textAlign: 'center' }}>
+                    {track.file_url ? (
+                      <button style={s.fileBtn} onClick={() => getFile(track)} title="download file">
+                        ↓ file
+                      </button>
+                    ) : (
+                      <span style={{ color: 'var(--border)' }}>—</span>
+                    )}
                   </td>
                   <td style={{ ...s.td, textAlign: 'center' }}>
                     {canEdit ? (
@@ -383,6 +437,40 @@ const s = {
     padding: '11px',
     letterSpacing: '0.06em',
     fontSize: '12px',
+    cursor: 'pointer',
+    fontFamily: 'var(--font)',
+  },
+  fileWrap: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+  },
+  fileLabel: {
+    flex: 1,
+    background: 'var(--bg)',
+    border: '1px solid var(--border)',
+    padding: '9px 12px',
+    fontSize: '12px',
+    color: 'var(--text-muted)',
+    cursor: 'pointer',
+    display: 'block',
+  },
+  clearFile: {
+    background: 'none',
+    border: '1px solid var(--border)',
+    color: 'var(--text-muted)',
+    padding: '9px 10px',
+    cursor: 'pointer',
+    fontSize: '12px',
+    fontFamily: 'var(--font)',
+  },
+  fileBtn: {
+    background: 'none',
+    border: '1px solid var(--border)',
+    color: 'var(--bronze)',
+    padding: '3px 8px',
+    fontSize: '10px',
+    letterSpacing: '0.05em',
     cursor: 'pointer',
     fontFamily: 'var(--font)',
   },
