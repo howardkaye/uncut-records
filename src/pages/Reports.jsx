@@ -1,0 +1,277 @@
+import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
+import { supabase } from '../lib/supabase'
+
+const STAGE_LABEL = {
+  intake: 'Intake', pre_release: 'Pre-release',
+  tease_window: 'Tease Window', released: 'Released', reporting: 'Reporting',
+}
+
+function fmt(n) {
+  if (!n) return '0'
+  if (n >= 1000000) return `${(n / 1000000).toFixed(1)}M`
+  if (n >= 1000) return `${(n / 1000).toFixed(1)}k`
+  return n.toLocaleString()
+}
+
+function daysSince(dateStr) {
+  if (!dateStr) return null
+  return Math.round((new Date() - new Date(dateStr)) / 86400000)
+}
+
+function weekOf() {
+  const d = new Date()
+  const day = d.getDay()
+  const monday = new Date(d)
+  monday.setDate(d.getDate() - ((day + 6) % 7))
+  return monday.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
+}
+
+function buildReportText(releases) {
+  const lines = []
+  lines.push('UNCUT RECORDS — WEEKLY REPORT')
+  lines.push(`Week of ${weekOf()}`)
+  lines.push('')
+
+  if (releases.length === 0) {
+    lines.push('No active releases this week.')
+    return lines.join('\n')
+  }
+
+  releases.forEach(r => {
+    const days = daysSince(r.release_date)
+    lines.push('─'.repeat(48))
+    lines.push(`${r.track?.title ?? '—'} — ${r.track?.artist ?? '—'}`)
+    lines.push(`Stage: ${STAGE_LABEL[r.stage]} | Release date: ${r.release_date ? new Date(r.release_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) : 'TBC'}${days !== null ? ` | ${days}d live` : ''}`)
+    lines.push('')
+    lines.push('Performance')
+    lines.push(`  Streams total:     ${fmt(r._streams)}`)
+    lines.push(`  TikTok uses:       ${fmt(r._ttUses)}`)
+    lines.push(`  TikTok views:      ${fmt(r._ttViews)}`)
+    lines.push('')
+    lines.push('Checklists')
+    lines.push(`  Pre-release:  ${r._preDone}/${r._preTotal} items complete`)
+    lines.push(`  Post-release: ${r._postDone}/${r._postTotal} items complete`)
+    if (r.notes) {
+      lines.push('')
+      lines.push(`Notes: ${r.notes}`)
+    }
+    lines.push('')
+  })
+
+  lines.push('─'.repeat(48))
+  lines.push(`Generated ${new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}`)
+  return lines.join('\n')
+}
+
+export default function Reports() {
+  const [releases, setReleases] = useState([])
+  const [loading, setLoading]   = useState(true)
+  const [copied, setCopied]     = useState(false)
+  const [stageFilter, setStageFilter] = useState('active')
+
+  useEffect(() => { fetchData() }, [])
+
+  async function fetchData() {
+    const { data: rels } = await supabase
+      .from('releases')
+      .select('*, track:tracks(*)')
+      .order('release_date', { ascending: false })
+
+    if (!rels) { setLoading(false); return }
+
+    const enriched = await Promise.all(rels.map(async r => {
+      const [perfRes, checkRes] = await Promise.all([
+        supabase.from('performance_data').select('streams, tiktok_uses, tiktok_views').eq('release_id', r.id),
+        supabase.from('checklist_items').select('checklist, completed').eq('release_id', r.id),
+      ])
+
+      const perf  = perfRes.data ?? []
+      const items = checkRes.data ?? []
+
+      const pre  = items.filter(i => i.checklist === 'pre_release')
+      const post = items.filter(i => i.checklist === 'post_release')
+
+      return {
+        ...r,
+        _streams:   perf.reduce((a, p) => a + (p.streams || 0), 0),
+        _ttUses:    perf.reduce((a, p) => a + (p.tiktok_uses || 0), 0),
+        _ttViews:   perf.reduce((a, p) => a + (p.tiktok_views || 0), 0),
+        _preDone:   pre.filter(i => i.completed).length,
+        _preTotal:  pre.length,
+        _postDone:  post.filter(i => i.completed).length,
+        _postTotal: post.length,
+      }
+    }))
+
+    setReleases(enriched)
+    setLoading(false)
+  }
+
+  const activeStages = ['released', 'reporting']
+  const visible = stageFilter === 'active'
+    ? releases.filter(r => activeStages.includes(r.stage))
+    : releases
+
+  async function copyReport() {
+    const text = buildReportText(visible)
+    await navigator.clipboard.writeText(text)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+
+  return (
+    <div style={s.page}>
+      <div style={s.header}>
+        <div>
+          <div style={s.pageTitle}>WEEKLY REPORT</div>
+          <div style={s.pageSubtitle}>week of {weekOf()}</div>
+        </div>
+        <div style={s.headerRight}>
+          <div style={s.filters}>
+            <button style={{ ...s.filterBtn, ...(stageFilter === 'active' ? s.filterActive : {}) }} onClick={() => setStageFilter('active')}>
+              active only
+            </button>
+            <button style={{ ...s.filterBtn, ...(stageFilter === 'all' ? s.filterActive : {}) }} onClick={() => setStageFilter('all')}>
+              all releases
+            </button>
+          </div>
+          <button style={{ ...s.copyBtn, ...(copied ? s.copiedBtn : {}) }} onClick={copyReport} disabled={loading}>
+            {copied ? 'copied ✓' : 'copy report'}
+          </button>
+        </div>
+      </div>
+
+      {loading ? (
+        <div style={s.empty}>generating report...</div>
+      ) : visible.length === 0 ? (
+        <div style={s.empty}>
+          no {stageFilter === 'active' ? 'active' : ''} releases —{' '}
+          <Link to="/pipeline" style={{ color: 'var(--bronze)' }}>go to pipeline</Link>
+        </div>
+      ) : (
+        <div style={s.cards}>
+          {visible.map(r => {
+            const days = daysSince(r.release_date)
+            const preProgress  = r._preTotal  ? Math.round((r._preDone  / r._preTotal)  * 100) : 0
+            const postProgress = r._postTotal ? Math.round((r._postDone / r._postTotal) * 100) : 0
+
+            return (
+              <div key={r.id} style={s.card}>
+                {/* Card header */}
+                <div style={s.cardHeader}>
+                  <div>
+                    <Link to={`/releases/${r.id}`} style={s.cardTitle}>
+                      {r.track?.title ?? '—'}
+                    </Link>
+                    <div style={s.cardArtist}>{r.track?.artist ?? '—'}</div>
+                  </div>
+                  <div style={s.cardMeta}>
+                    <span style={s.stagePill}>{STAGE_LABEL[r.stage]}</span>
+                    {r.release_date && (
+                      <span style={s.datePill}>
+                        {new Date(r.release_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
+                        {days !== null && days >= 0 && <> · {days}d live</>}
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                <div style={s.cardDivider} />
+
+                {/* Stats row */}
+                <div style={s.statsRow}>
+                  {[
+                    { label: 'Streams',      value: fmt(r._streams) },
+                    { label: 'TikTok Uses',  value: fmt(r._ttUses) },
+                    { label: 'TikTok Views', value: fmt(r._ttViews) },
+                  ].map(stat => (
+                    <div key={stat.label} style={s.stat}>
+                      <div style={s.statValue}>{stat.value}</div>
+                      <div style={s.statLabel}>{stat.label}</div>
+                    </div>
+                  ))}
+                </div>
+
+                <div style={s.cardDivider} />
+
+                {/* Checklists */}
+                <div style={s.checklistRow}>
+                  {[
+                    { label: 'Pre-release',  done: r._preDone,  total: r._preTotal,  pct: preProgress },
+                    { label: 'Post-release', done: r._postDone, total: r._postTotal, pct: postProgress },
+                  ].map(cl => (
+                    <div key={cl.label} style={s.checklistBlock}>
+                      <div style={s.checklistHeader}>
+                        <span style={s.checklistLabel}>{cl.label}</span>
+                        <span style={s.checklistCount}>{cl.done}/{cl.total}</span>
+                      </div>
+                      <div style={s.bar}>
+                        <div style={{ ...s.barFill, width: `${cl.pct}%`, background: cl.pct === 100 ? 'var(--bronze)' : 'var(--bronze-dim)' }} />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Notes */}
+                {r.notes && (
+                  <div style={s.notesBlock}>
+                    <span style={s.notesLabel}>notes</span>
+                    <span style={s.notesText}>{r.notes}</span>
+                  </div>
+                )}
+              </div>
+            )
+          })}
+        </div>
+      )}
+    </div>
+  )
+}
+
+const s = {
+  page:   { display: 'flex', flexDirection: 'column', minHeight: 'calc(100vh - 48px)' },
+  header: {
+    display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between',
+    padding: '20px 24px 16px', borderBottom: '1px solid var(--border)', flexWrap: 'wrap', gap: '12px',
+  },
+  pageTitle:   { fontSize: '11px', letterSpacing: '0.12em', color: 'var(--text-muted)', fontWeight: 500 },
+  pageSubtitle: { fontSize: '12px', color: 'var(--text)', marginTop: '3px' },
+  headerRight: { display: 'flex', alignItems: 'center', gap: '10px' },
+  filters:     { display: 'flex', border: '1px solid var(--border)', overflow: 'hidden' },
+  filterBtn:   { background: 'var(--surface)', border: 'none', borderRight: '1px solid var(--border)', padding: '7px 12px', fontSize: '11px', letterSpacing: '0.05em', color: 'var(--text-muted)', cursor: 'pointer', fontFamily: 'var(--font)' },
+  filterActive: { background: 'var(--surface-2)', color: 'var(--text)', fontWeight: 500 },
+  copyBtn:     { background: 'var(--surface)', border: '1px solid var(--border)', padding: '7px 16px', fontSize: '11px', letterSpacing: '0.06em', cursor: 'pointer', color: 'var(--text)', fontFamily: 'var(--font)' },
+  copiedBtn:   { background: 'var(--bronze)', color: '#fff', borderColor: 'var(--bronze)' },
+
+  empty: { padding: '48px 24px', color: 'var(--text-muted)', fontSize: '12px', letterSpacing: '0.06em' },
+
+  cards: { display: 'flex', flexDirection: 'column', gap: '0', padding: '24px', gap: '16px' },
+
+  card:       { background: 'var(--surface)', border: '1px solid var(--border)', padding: '20px 24px' },
+  cardHeader: { display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px', flexWrap: 'wrap' },
+  cardTitle:  { fontSize: '15px', fontWeight: 500, color: 'var(--bronze)', textDecoration: 'none', display: 'block', marginBottom: '2px' },
+  cardArtist: { fontSize: '12px', color: 'var(--text-muted)' },
+  cardMeta:   { display: 'flex', gap: '6px', alignItems: 'center', flexShrink: 0 },
+  cardDivider: { height: '1px', background: 'var(--border)', margin: '16px 0' },
+
+  stagePill: { fontSize: '10px', letterSpacing: '0.06em', color: 'var(--bronze)', border: '1px solid var(--bronze-dim)', background: '#f5ede0', padding: '2px 8px' },
+  datePill:  { fontSize: '10px', letterSpacing: '0.04em', color: 'var(--text-muted)', border: '1px solid var(--border)', background: 'var(--surface-2)', padding: '2px 8px' },
+
+  statsRow:  { display: 'flex', gap: '0' },
+  stat:      { flex: 1, padding: '0 16px 0 0' },
+  statValue: { fontSize: '20px', fontWeight: 500, color: 'var(--text)', letterSpacing: '-0.02em', marginBottom: '2px' },
+  statLabel: { fontSize: '10px', letterSpacing: '0.08em', color: 'var(--text-muted)', textTransform: 'uppercase' },
+
+  checklistRow:   { display: 'flex', gap: '24px' },
+  checklistBlock: { flex: 1 },
+  checklistHeader: { display: 'flex', justifyContent: 'space-between', marginBottom: '6px' },
+  checklistLabel:  { fontSize: '11px', color: 'var(--text-muted)', letterSpacing: '0.06em' },
+  checklistCount:  { fontSize: '11px', color: 'var(--text-muted)' },
+  bar:     { height: '3px', background: 'var(--surface-2)', borderRadius: '2px' },
+  barFill: { height: '100%', borderRadius: '2px', transition: 'width 0.4s' },
+
+  notesBlock: { marginTop: '14px', display: 'flex', gap: '10px', alignItems: 'baseline' },
+  notesLabel: { fontSize: '10px', letterSpacing: '0.08em', color: 'var(--text-muted)', textTransform: 'uppercase', flexShrink: 0 },
+  notesText:  { fontSize: '12px', color: 'var(--text)', lineHeight: 1.5 },
+}
