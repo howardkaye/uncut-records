@@ -7,6 +7,7 @@ import TrackPool from './pages/TrackPool'
 import Releases from './pages/Releases'
 import ReleaseDetail from './pages/ReleaseDetail'
 import Reports from './pages/Reports'
+import Profile from './pages/Profile'
 
 function ProtectedRoute({ children, roles }) {
   const { session, profile } = useAuth()
@@ -51,6 +52,11 @@ function Shell() {
           <Route path="/reports" element={
             <ProtectedRoute roles={['coordinator']}>
               <Reports />
+            </ProtectedRoute>
+          } />
+          <Route path="/profile" element={
+            <ProtectedRoute>
+              <Profile />
             </ProtectedRoute>
           } />
           <Route path="*" element={<Navigate to="/pipeline" replace />} />
