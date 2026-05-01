@@ -62,20 +62,20 @@ const MARKETING_ITEMS = [
   'Cover artwork finalised and approved',
   'Square and vertical (9:16) versions cut for TikTok and Instagram',
   'Track title and artist name on artwork match metadata exactly',
-  '§ TEASE WINDOW CONTENT (MON–FRI)',
+  '§ TEASE WINDOW CONTENT',
   'Monday confirmed as ground zero for this release',
-  'LST briefed: song, start date, Friday target (50–100 videos on the sound)',
+  'LST briefed: song, start date, and target (50–100 videos on the sound)',
   'Interns and Flowstate briefed for volume content support',
   'Spearhead content created by LST: trend-aware posts designed to move',
   'Volume content live via interns and Flowstate (AI aesthetic clips, boiler room visuals, DJ footage)',
   'Each post has unique caption and minimum 10% visual variation (TikTok algorithm requirement)',
   'Content monitored daily: sound uses, UGC, comments asking for track ID',
-  'LST reports best performing post by Thursday',
-  '§ FRIDAY DECISION',
+  'LST identifies best performing post and flags when traction is building',
+  '§ RELEASE DECISION',
   'Check: are people using the sound organically?',
   'Check: are comments asking "what is this track / what is this sound?"',
   'If YES to either: trigger release and activate scale spend',
-  'If NO to both: do not release. Track returns to pool.',
+  'If NO: do not release. Track returns to pool.',
   '§ SCALE SCENARIO (TRACK REACTING)',
   '£50 behind best performing TikTok post identified by LST',
   'TikTok boost activated via platform (if going through SoundOn) or paid boost',
@@ -267,14 +267,14 @@ function TeaseWindowLog({ releaseId, isCoordinator }) {
   )
 }
 
-function FridayDecision({ release, onDecision }) {
+function ReleaseDecision({ release, onDecision }) {
   const [confirming, setConfirming] = useState(null)
 
   if (release.friday_decision) {
     return (
       <div style={{ ...s.section, borderColor: release.friday_decision === 'release' ? '#a8c898' : 'var(--border)' }}>
         <div style={s.sectionHeader}>
-          <span style={s.sectionTitle}>Friday Decision</span>
+          <span style={s.sectionTitle}>Release Decision</span>
           <span style={{
             fontSize: '11px', padding: '2px 8px', border: '1px solid',
             color: release.friday_decision === 'release' ? '#5a7a4a' : 'var(--text-muted)',
@@ -291,10 +291,11 @@ function FridayDecision({ release, onDecision }) {
   return (
     <div style={{ ...s.section, borderColor: 'var(--bronze-dim)', background: '#fdf8f2' }}>
       <div style={s.sectionHeader}>
-        <span style={{ ...s.sectionTitle, color: 'var(--bronze)' }}>Friday Decision</span>
+        <span style={{ ...s.sectionTitle, color: 'var(--bronze)' }}>Release Decision</span>
       </div>
       <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '16px', lineHeight: 1.6 }}>
-        Are people using the sound organically? Are comments asking what the track is?
+        Is the track getting traction? Sound being used organically, comments asking what it is?
+        Make this call whenever the signal is clear — doesn't have to wait until Friday.
       </p>
       <div style={{ display: 'flex', gap: '10px' }}>
         <button
@@ -597,7 +598,7 @@ export default function ReleaseDetail() {
           )}
           {isCoordinator && release.stage === 'tease_window' && !release.friday_decision && (
             <span style={{ fontSize: '11px', color: 'var(--bronze)', letterSpacing: '0.06em' }}>
-              friday decision required before advancing
+              release decision required before advancing
             </span>
           )}
         </div>
@@ -637,7 +638,7 @@ export default function ReleaseDetail() {
                 <ChecklistSection releaseId={id} checklist="post_release" label="Marketing Checklist" isCoordinator={isCoordinator} />
                 {release.stage === 'tease_window' && (
                   <>
-                    <FridayDecision release={release} onDecision={handleFridayDecision} />
+                    <ReleaseDecision release={release} onDecision={handleFridayDecision} />
                     <TeaseWindowLog releaseId={id} isCoordinator={isCoordinator || isContent} />
                   </>
                 )}
