@@ -277,6 +277,7 @@ export default function TrackPool() {
   const [showModal, setShowModal]     = useState(false)
   const [clearing, setClearing]       = useState(null)
   const [deleting, setDeleting]       = useState(null)
+  const [confirmDeleteId, setConfirmDeleteId] = useState(null)
   const [playingId, setPlayingId]     = useState(null)
   const isCoordinator = !profile || profile.role === 'coordinator'
 
@@ -304,8 +305,8 @@ export default function TrackPool() {
   }
 
   async function deleteTrack(track) {
-    if (!confirm(`Delete "${track.title}"? This will also remove any associated releases and cannot be undone.`)) return
     setDeleting(track.id)
+    setConfirmDeleteId(null)
     if (playingId === track.id) setPlayingId(null)
 
     const { data: releases } = await supabase.from('releases').select('id').eq('track_id', track.id)
@@ -422,8 +423,17 @@ export default function TrackPool() {
                 </div>
                 {isCoordinator && (
                   <div style={{ ...s.td, flex: '0 0 36px', justifyContent: 'center' }}>
-                    <button style={s.deleteBtn} onClick={() => deleteTrack(track)}
-                      disabled={deleting === track.id} title="Delete track">×</button>
+                    {confirmDeleteId === track.id ? (
+                      <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+                        <button style={{ ...s.deleteBtn, background: '#b84040', color: '#fff', border: 'none', width: 'auto', padding: '2px 6px', fontSize: '10px' }}
+                          onClick={() => deleteTrack(track)}>yes</button>
+                        <button style={{ ...s.deleteBtn, fontSize: '10px', width: 'auto', padding: '2px 6px' }}
+                          onClick={() => setConfirmDeleteId(null)}>no</button>
+                      </div>
+                    ) : (
+                      <button style={s.deleteBtn} onClick={() => setConfirmDeleteId(track.id)}
+                        disabled={deleting === track.id} title="Delete track">×</button>
+                    )}
                   </div>
                 )}
               </div>
