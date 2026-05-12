@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
+import { useAuth } from '../context/AuthContext'
 
 const STAGE_LABEL = {
   intake: 'Intake', pre_release: 'Pre-release',
@@ -44,10 +45,10 @@ function buildReportText(releases) {
     lines.push(`${r.track?.title ?? '—'} — ${r.track?.artist ?? '—'}`)
     lines.push(`Stage: ${STAGE_LABEL[r.stage]} | Release date: ${r.release_date ? new Date(r.release_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) : 'TBC'}${days !== null ? ` | ${days}d live` : ''}`)
     lines.push('')
-    lines.push('Performance')
-    lines.push(`  Streams total:     ${fmt(r._streams)}`)
-    lines.push(`  TikTok uses:       ${fmt(r._ttUses)}`)
-    lines.push(`  TikTok views:      ${fmt(r._ttViews)}`)
+    lines.push('TikTok UGC')
+    lines.push(`  Sound uses:        ${fmt(r._ttUses)}`)
+    lines.push(`  Sound views:       ${fmt(r._ttViews)}`)
+    lines.push(`  Top video views:   ${fmt(r._streams)}`)
     lines.push('')
     lines.push('Checklists')
     lines.push(`  Pre-release:  ${r._preDone}/${r._preTotal} items complete`)
@@ -64,11 +65,93 @@ function buildReportText(releases) {
   return lines.join('\n')
 }
 
+function LogDataForm({ releaseId, onSaved }) {
+  const { profile } = useAuth()
+  const [open, setOpen]     = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [form, setForm]     = useState({
+    report_date: new Date().toISOString().slice(0, 10),
+    tiktok_uses: '', tiktok_views: '', streams: '', notes: '',
+  })
+
+  async function handleSubmit(e) {
+    e.preventDefault()
+    setSaving(true)
+    const { error } = await supabase.from('performance_data').insert({
+      release_id: releaseId,
+      report_date: form.report_date,
+      platform: 'TikTok',
+      streams:      parseInt(form.streams)      || 0,
+      tiktok_uses:  parseInt(form.tiktok_uses)  || 0,
+      tiktok_views: parseInt(form.tiktok_views) || 0,
+      notes: form.notes.trim() || null,
+      recorded_by: profile?.id,
+    })
+    if (!error) {
+      setForm(f => ({ ...f, tiktok_uses: '', tiktok_views: '', streams: '', notes: '' }))
+      setOpen(false)
+      onSaved()
+    }
+    setSaving(false)
+  }
+
+  return (
+    <div style={{ marginTop: '14px', borderTop: '1px solid var(--border)', paddingTop: '14px' }}>
+      {!open ? (
+        <button
+          style={{ background: 'none', border: '1px solid var(--border)', padding: '6px 14px', fontSize: '11px', letterSpacing: '0.06em', cursor: 'pointer', color: 'var(--text-muted)', fontFamily: 'var(--font)' }}
+          onClick={() => setOpen(true)}>
+          + log update
+        </button>
+      ) : (
+        <form onSubmit={handleSubmit}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '10px', marginBottom: '10px' }}>
+            {[
+              { label: 'Date',             key: 'report_date',  type: 'date'   },
+              { label: 'Sound Uses',       key: 'tiktok_uses',  type: 'number', placeholder: '0' },
+              { label: 'Sound Views',      key: 'tiktok_views', type: 'number', placeholder: '0' },
+              { label: 'Top Video Views',  key: 'streams',      type: 'number', placeholder: '0' },
+            ].map(f => (
+              <div key={f.key}>
+                <div style={{ fontSize: '10px', letterSpacing: '0.08em', color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '4px' }}>{f.label}</div>
+                <input
+                  style={{ width: '100%', background: 'var(--bg)', border: '1px solid var(--border)', padding: '6px 8px', fontSize: '11px', fontFamily: 'var(--font)', color: 'var(--text)', boxSizing: 'border-box' }}
+                  type={f.type} placeholder={f.placeholder}
+                  value={form[f.key]}
+                  onChange={e => setForm(p => ({ ...p, [f.key]: e.target.value }))} />
+              </div>
+            ))}
+          </div>
+          <div style={{ marginBottom: '10px' }}>
+            <div style={{ fontSize: '10px', letterSpacing: '0.08em', color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '4px' }}>Notes (optional)</div>
+            <input
+              style={{ width: '100%', background: 'var(--bg)', border: '1px solid var(--border)', padding: '6px 8px', fontSize: '11px', fontFamily: 'var(--font)', color: 'var(--text)', boxSizing: 'border-box' }}
+              placeholder="e.g. playlist add, TikTok spike…"
+              value={form.notes}
+              onChange={e => setForm(p => ({ ...p, notes: e.target.value }))} />
+          </div>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button type="submit" disabled={saving}
+              style={{ background: 'var(--bronze)', color: '#fff', border: 'none', padding: '7px 16px', fontSize: '11px', letterSpacing: '0.06em', cursor: 'pointer', fontFamily: 'var(--font)' }}>
+              {saving ? 'saving…' : 'save'}
+            </button>
+            <button type="button" onClick={() => setOpen(false)}
+              style={{ background: 'none', border: '1px solid var(--border)', padding: '7px 14px', fontSize: '11px', color: 'var(--text-muted)', cursor: 'pointer', fontFamily: 'var(--font)' }}>
+              cancel
+            </button>
+          </div>
+        </form>
+      )}
+    </div>
+  )
+}
+
 export default function Reports() {
+  const navigate = useNavigate()
   const [releases, setReleases] = useState([])
   const [loading, setLoading]   = useState(true)
   const [copied, setCopied]     = useState(false)
-  const [stageFilter, setStageFilter] = useState('active')
+  const [stageFilter, setStageFilter] = useState('all')
 
   useEffect(() => { fetchData() }, [])
 
@@ -76,6 +159,7 @@ export default function Reports() {
     const { data: rels } = await supabase
       .from('releases')
       .select('*, track:tracks(*)')
+      .neq('stage', 'archived')
       .order('release_date', { ascending: false })
 
     if (!rels) { setLoading(false); return }
@@ -108,7 +192,7 @@ export default function Reports() {
     setLoading(false)
   }
 
-  const activeStages = ['released', 'reporting']
+  const activeStages = ['tease_window', 'released', 'reporting']
   const visible = stageFilter === 'active'
     ? releases.filter(r => activeStages.includes(r.stage))
     : releases
@@ -129,13 +213,16 @@ export default function Reports() {
         </div>
         <div style={s.headerRight}>
           <div style={s.filters}>
-            <button style={{ ...s.filterBtn, ...(stageFilter === 'active' ? s.filterActive : {}) }} onClick={() => setStageFilter('active')}>
-              active only
-            </button>
             <button style={{ ...s.filterBtn, ...(stageFilter === 'all' ? s.filterActive : {}) }} onClick={() => setStageFilter('all')}>
               all releases
             </button>
+            <button style={{ ...s.filterBtn, ...(stageFilter === 'active' ? s.filterActive : {}) }} onClick={() => setStageFilter('active')}>
+              live only
+            </button>
           </div>
+          <button style={s.weeklyBtn} onClick={() => navigate('/weekly-report')}>
+            ↓ weekly PDF
+          </button>
           <button style={{ ...s.copyBtn, ...(copied ? s.copiedBtn : {}) }} onClick={copyReport} disabled={loading}>
             {copied ? 'copied ✓' : 'copy report'}
           </button>
@@ -146,7 +233,7 @@ export default function Reports() {
         <div style={s.empty}>generating report...</div>
       ) : visible.length === 0 ? (
         <div style={s.empty}>
-          no {stageFilter === 'active' ? 'active' : ''} releases —{' '}
+          no {stageFilter === 'active' ? 'live' : ''} releases —{' '}
           <Link to="/pipeline" style={{ color: 'var(--bronze)' }}>go to pipeline</Link>
         </div>
       ) : (
@@ -182,9 +269,9 @@ export default function Reports() {
                 {/* Stats row */}
                 <div style={s.statsRow}>
                   {[
-                    { label: 'Streams',      value: fmt(r._streams) },
-                    { label: 'TikTok Uses',  value: fmt(r._ttUses) },
-                    { label: 'TikTok Views', value: fmt(r._ttViews) },
+                    { label: 'Sound Uses',      value: fmt(r._ttUses) },
+                    { label: 'Sound Views',     value: fmt(r._ttViews) },
+                    { label: 'Top Video Views', value: fmt(r._streams) },
                   ].map(stat => (
                     <div key={stat.label} style={s.stat}>
                       <div style={s.statValue}>{stat.value}</div>
@@ -220,6 +307,8 @@ export default function Reports() {
                     <span style={s.notesText}>{r.notes}</span>
                   </div>
                 )}
+
+                <LogDataForm releaseId={r.id} onSaved={fetchData} />
               </div>
             )
           })}
@@ -241,6 +330,7 @@ const s = {
   filters:     { display: 'flex', border: '1px solid var(--border)', overflow: 'hidden' },
   filterBtn:   { background: 'var(--surface)', border: 'none', borderRight: '1px solid var(--border)', padding: '7px 12px', fontSize: '11px', letterSpacing: '0.05em', color: 'var(--text-muted)', cursor: 'pointer', fontFamily: 'var(--font)' },
   filterActive: { background: 'var(--surface-2)', color: 'var(--text)', fontWeight: 500 },
+  weeklyBtn:   { background: 'var(--bronze)', border: '1px solid var(--bronze)', padding: '7px 16px', fontSize: '11px', letterSpacing: '0.06em', cursor: 'pointer', color: '#fff', fontFamily: 'var(--font)' },
   copyBtn:     { background: 'var(--surface)', border: '1px solid var(--border)', padding: '7px 16px', fontSize: '11px', letterSpacing: '0.06em', cursor: 'pointer', color: 'var(--text)', fontFamily: 'var(--font)' },
   copiedBtn:   { background: 'var(--bronze)', color: '#fff', borderColor: 'var(--bronze)' },
 

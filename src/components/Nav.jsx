@@ -2,10 +2,12 @@ import { NavLink, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 
 const allLinks = [
-  { to: '/pipeline',   label: 'pipeline',    roles: ['coordinator', 'selector'] },
   { to: '/tracks',     label: 'track pool',  roles: ['coordinator', 'selector'] },
+  { to: '/pipeline',   label: 'pipeline',    roles: ['coordinator', 'selector'] },
   { to: '/releases',   label: 'releases',    roles: ['coordinator', 'content'] },
   { to: '/reports',    label: 'reports',     roles: ['coordinator'] },
+  { to: '/vault',      label: 'vault',       roles: ['coordinator'] },
+  { to: '/guide',      label: 'guide',       roles: ['coordinator', 'selector', 'content'] },
 ]
 
 export default function Nav() {
@@ -23,7 +25,9 @@ export default function Nav() {
 
   return (
     <nav style={styles.nav}>
-      <div style={styles.wordmark}>UNCUT</div>
+      <NavLink to="/pipeline" style={{ textDecoration: 'none' }}>
+        <div style={styles.wordmark}>UNCUT</div>
+      </NavLink>
 
       <div style={styles.links}>
         {links.map(l => (

@@ -2,12 +2,16 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import Login from './components/Login'
 import Nav from './components/Nav'
+import ChatBox from './components/ChatBox'
 import Pipeline from './pages/Pipeline'
 import TrackPool from './pages/TrackPool'
 import Releases from './pages/Releases'
 import ReleaseDetail from './pages/ReleaseDetail'
 import Reports from './pages/Reports'
+import WeeklyReport from './pages/WeeklyReport'
 import Profile from './pages/Profile'
+import Guide from './pages/Guide'
+import Vault from './pages/Vault'
 
 function ProtectedRoute({ children, roles }) {
   const { session, profile } = useAuth()
@@ -54,14 +58,30 @@ function Shell() {
               <Reports />
             </ProtectedRoute>
           } />
+          <Route path="/vault" element={
+            <ProtectedRoute roles={['coordinator']}>
+              <Vault />
+            </ProtectedRoute>
+          } />
+          <Route path="/weekly-report" element={
+            <ProtectedRoute roles={['coordinator']}>
+              <WeeklyReport />
+            </ProtectedRoute>
+          } />
           <Route path="/profile" element={
             <ProtectedRoute>
               <Profile />
             </ProtectedRoute>
           } />
+          <Route path="/guide" element={
+            <ProtectedRoute>
+              <Guide />
+            </ProtectedRoute>
+          } />
           <Route path="*" element={<Navigate to="/pipeline" replace />} />
         </Routes>
       </main>
+      <ChatBox />
     </div>
   )
 }
