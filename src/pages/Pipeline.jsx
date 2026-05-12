@@ -695,26 +695,7 @@ export default function Pipeline() {
       <div style={s.header}>
         <span style={s.pageTitle}>PIPELINE</span>
         {isCoordinator && (
-          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-            {syncResult && !syncResult.error && (
-              <span style={{ fontSize: '11px', color: 'var(--text-muted)', letterSpacing: '0.04em' }}>
-                {syncResult.updated > 0 ? `✓ ${syncResult.updated} release${syncResult.updated !== 1 ? 's' : ''} updated` : '✓ already up to date'}
-              </span>
-            )}
-            {syncResult?.error && (
-              <span style={{ fontSize: '11px', color: '#b84040', letterSpacing: '0.04em' }}>
-                sync failed
-              </span>
-            )}
-            <button
-              style={{ ...s.syncBtn, opacity: syncing ? 0.6 : 1 }}
-              onClick={syncAsana}
-              disabled={syncing}
-              title="Pull tease & release dates from Asana">
-              {syncing ? 'syncing…' : '↻ asana'}
-            </button>
-            <button style={s.newBtn} onClick={() => setShowModal(true)}>+ new release</button>
-          </div>
+          <button style={s.newBtn} onClick={() => setShowModal(true)}>+ new release</button>
         )}
       </div>
 

@@ -12,6 +12,7 @@ import WeeklyReport from './pages/WeeklyReport'
 import Profile from './pages/Profile'
 import Guide from './pages/Guide'
 import Vault from './pages/Vault'
+import Calendar from './pages/Calendar'
 
 function ProtectedRoute({ children, roles }) {
   const { session, profile } = useAuth()
@@ -61,6 +62,11 @@ function Shell() {
           <Route path="/vault" element={
             <ProtectedRoute roles={['coordinator']}>
               <Vault />
+            </ProtectedRoute>
+          } />
+          <Route path="/calendar" element={
+            <ProtectedRoute roles={['coordinator']}>
+              <Calendar />
             </ProtectedRoute>
           } />
           <Route path="/weekly-report" element={
