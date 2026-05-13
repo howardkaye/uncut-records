@@ -245,7 +245,7 @@ function TrackFormModal({ onClose, onSaved, initialTrack }) {
             {isEdit && initialTrack?.file_url && <span style={{ color: 'var(--bronze)', marginLeft: '6px' }}>✓ uploaded — choose new to replace</span>}
           </label>
           <label style={s.fileBtn}>
-            <input type="file" accept=".wav,.mp3,.aiff,.flac" style={{ display: 'none' }}
+            <input type="file" accept=".wav,.mp3,.aiff,.flac,.m4a,.aac" style={{ display: 'none' }}
               onChange={e => {
                 const f = e.target.files[0]
                 if (!f) return
@@ -276,7 +276,7 @@ function TrackFormModal({ onClose, onSaved, initialTrack }) {
             {isEdit && initialTrack?.instrumental_url && <span style={{ color: 'var(--bronze)', marginLeft: '6px' }}>✓ uploaded — choose new to replace</span>}
           </label>
           <label style={s.fileBtn}>
-            <input type="file" accept=".wav,.mp3,.aiff,.flac" style={{ display: 'none' }}
+            <input type="file" accept=".wav,.mp3,.aiff,.flac,.m4a,.aac" style={{ display: 'none' }}
               onChange={e => setInstrumental(e.target.files[0])} />
             {instrumental ? instrumental.name : '+ choose file'}
           </label>
@@ -286,7 +286,7 @@ function TrackFormModal({ onClose, onSaved, initialTrack }) {
             {isEdit && initialTrack?.tiktok_audio_url && <span style={{ color: 'var(--bronze)', marginLeft: '6px' }}>✓ uploaded — choose new to replace</span>}
           </label>
           <label style={s.fileBtn}>
-            <input type="file" accept=".wav,.mp3,.aiff,.flac" style={{ display: 'none' }}
+            <input type="file" accept=".wav,.mp3,.aiff,.flac,.m4a,.aac" style={{ display: 'none' }}
               onChange={e => setTiktokAudio(e.target.files[0])} />
             {tiktokAudio ? tiktokAudio.name : '+ choose file'}
           </label>
