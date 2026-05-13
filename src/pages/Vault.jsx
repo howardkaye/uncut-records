@@ -20,7 +20,7 @@ export default function Vault() {
     const { data: rels } = await supabase
       .from('releases')
       .select('*, track:tracks(*)')
-      .eq('stage', 'archived')
+      .eq('archived', true)
       .order('release_date', { ascending: false })
 
     if (!rels) { setLoading(false); return }

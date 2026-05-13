@@ -599,7 +599,7 @@ export default function Pipeline() {
     const { data, error } = await supabase
       .from('releases')
       .select('*, track:tracks(*)')
-      .neq('stage', 'archived')
+      .neq('archived', true)
       .order('created_at', { ascending: true })
 
     if (!error) setReleases(data)
@@ -628,8 +628,8 @@ export default function Pipeline() {
   }
 
   async function archiveRelease(release) {
-    await supabase.from('releases').update({ stage: 'archived' }).eq('id', release.id)
-    setReleases(prev => prev.filter(r => r.id !== release.id))
+    const { error } = await supabase.from('releases').update({ archived: true }).eq('id', release.id)
+    if (!error) setReleases(prev => prev.filter(r => r.id !== release.id))
   }
 
   async function removeFromPipeline(release) {

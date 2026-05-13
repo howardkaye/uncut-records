@@ -159,7 +159,7 @@ export default function Reports() {
     const { data: rels } = await supabase
       .from('releases')
       .select('*, track:tracks(*)')
-      .neq('stage', 'archived')
+      .neq('archived', true)
       .order('release_date', { ascending: false })
 
     if (!rels) { setLoading(false); return }
