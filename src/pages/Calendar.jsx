@@ -106,7 +106,7 @@ export default function Calendar() {
             {['all', 'release', 'tease', 'content', 'ads'].map(f => (
               <button
                 key={f}
-                style={{ ...s.filterBtn, ...(filter === f ? { background: 'var(--surface-2)', color: 'var(--text)', fontWeight: 500 } : {}) }}
+                style={{ ...s.filterBtn, ...(filter === f ? { background: 'var(--pink)', borderColor: 'var(--pink)', color: 'var(--green)', fontWeight: 600 } : {}) }}
                 onClick={() => setFilter(f)}>
                 {f === 'all' ? 'all' : TYPE_CONFIG[f].label.toLowerCase()}
               </button>
@@ -231,11 +231,11 @@ const s = {
   pageSubtitle: { fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px', letterSpacing: '0.04em' },
   headerRight:  { display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' },
 
-  filters:    { display: 'flex', border: '1px solid var(--border)', overflow: 'hidden' },
-  filterBtn:  { background: 'var(--surface)', border: 'none', borderRight: '1px solid var(--border)', padding: '6px 11px', fontSize: '11px', letterSpacing: '0.05em', color: 'var(--text-muted)', cursor: 'pointer', fontFamily: 'var(--font)' },
+  filters:    { display: 'flex', gap: '5px' },
+  filterBtn:  { background: '#fff', border: '1.5px solid var(--border)', borderRadius: 'var(--radius-pill)', padding: '5px 12px', fontSize: '11px', letterSpacing: '0.05em', color: 'var(--text-muted)', cursor: 'pointer', fontFamily: 'var(--font)' },
 
   monthNav:   { display: 'flex', alignItems: 'center', gap: '8px' },
-  navBtn:     { background: 'var(--surface)', border: '1px solid var(--border)', width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: '16px', color: 'var(--text)', fontFamily: 'var(--font)' },
+  navBtn:     { background: '#fff', border: '1.5px solid var(--border)', borderRadius: '50%', width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: '16px', color: 'var(--text)', fontFamily: 'var(--font)' },
   monthLabel: { fontSize: '13px', fontWeight: 500, color: 'var(--text)', minWidth: '130px', textAlign: 'center' },
 
   empty: { padding: '48px 24px', fontSize: '12px', color: 'var(--text-muted)', letterSpacing: '0.06em' },
@@ -248,11 +248,11 @@ const s = {
 
   grid:      { display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gridTemplateRows: 'repeat(6, 1fr)', flex: 1, overflow: 'hidden' },
   cell:      { borderRight: '1px solid var(--border)', borderBottom: '1px solid var(--border)', padding: '6px 6px 4px', overflow: 'hidden', display: 'flex', flexDirection: 'column', gap: '2px', minHeight: 0 },
-  cellToday: { background: '#fdf8f2' },
+  cellToday: { background: '#f8faf5' },
   cellFaded: { background: 'var(--bg)', opacity: 0.4 },
 
   dayNum:      { fontSize: '11px', color: 'var(--text-muted)', lineHeight: 1, marginBottom: '3px', flexShrink: 0 },
-  dayNumToday: { color: 'var(--bronze)', fontWeight: 600 },
+  dayNumToday: { color: 'var(--green)', fontWeight: 600 },
 
   eventList: { display: 'flex', flexDirection: 'column', gap: '2px', overflow: 'hidden', flex: 1 },
   pill:      { fontSize: '10px', padding: '2px 5px', border: '1px solid', borderRadius: '2px', cursor: 'default', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', lineHeight: 1.4, letterSpacing: '0.02em' },

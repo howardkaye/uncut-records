@@ -39,8 +39,8 @@ export default function Login() {
   return (
     <div style={styles.wrapper}>
       <div style={styles.card}>
-        <div style={styles.wordmark}>UNCUT RECORDS</div>
-        <p style={styles.sub}>release management</p>
+        <div style={styles.wordmark}>UNCUT</div>
+        <p style={styles.sub}>records · release management</p>
 
         {forgotMode ? (
           resetSent ? (
@@ -106,17 +106,20 @@ const styles = {
   },
   card: {
     background: 'var(--surface)',
-    border: '1px solid var(--border)',
+    border: '1.5px solid var(--border)',
+    borderRadius: '20px',
     padding: '48px 40px',
     width: '100%',
     maxWidth: '380px',
   },
   wordmark: {
-    fontSize: '15px',
-    fontWeight: '600',
-    letterSpacing: '0.12em',
-    color: 'var(--bronze)',
+    fontFamily: 'var(--font-display)',
+    fontSize: '36px',
+    fontWeight: 900,
+    letterSpacing: '-0.01em',
+    color: 'var(--green)',
     marginBottom: '4px',
+    lineHeight: 1,
   },
   sub: {
     fontSize: '11px',
@@ -137,8 +140,9 @@ const styles = {
   },
   input: {
     background: 'var(--bg)',
-    border: '1px solid var(--border)',
-    padding: '10px 12px',
+    border: '1.5px solid var(--border)',
+    borderRadius: '8px',
+    padding: '10px 14px',
     color: 'var(--text)',
     outline: 'none',
     width: '100%',
@@ -152,9 +156,10 @@ const styles = {
   },
   button: {
     marginTop: '24px',
-    background: 'var(--bronze)',
-    color: '#fff',
+    background: 'var(--pink)',
+    color: 'var(--green)',
     border: 'none',
+    borderRadius: 'var(--radius-pill)',
     padding: '12px',
     letterSpacing: '0.08em',
     fontWeight: '500',

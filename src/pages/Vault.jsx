@@ -85,7 +85,7 @@ export default function Vault() {
 
           {visible.map(r => (
             <Link key={r.id} to={`/releases/${r.id}`} style={{ ...s.row, textDecoration: 'none' }}>
-              <div style={{ ...s.td, flex: '2 1 0', color: 'var(--bronze)', fontWeight: 500 }}>
+              <div style={{ ...s.td, flex: '2 1 0', color: 'var(--green)', fontWeight: 500 }}>
                 {r.track?.title ?? '—'}
               </div>
               <div style={{ ...s.td, flex: '1 1 0' }}>
@@ -112,7 +112,7 @@ const s = {
   header:      { display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', padding: '20px 24px 16px', borderBottom: '1px solid var(--border)', gap: '16px', flexWrap: 'wrap' },
   pageTitle:   { fontSize: '11px', letterSpacing: '0.12em', color: 'var(--text-muted)', fontWeight: 500 },
   pageSubtitle: { fontSize: '12px', color: 'var(--text)', marginTop: '3px' },
-  search:      { background: 'var(--bg)', border: '1px solid var(--border)', padding: '7px 12px', fontSize: '12px', fontFamily: 'var(--font)', color: 'var(--text)', outline: 'none', width: '200px' },
+  search:      { background: 'var(--bg)', border: '1.5px solid var(--border)', borderRadius: 'var(--radius-pill)', padding: '7px 16px', fontSize: '12px', fontFamily: 'var(--font)', color: 'var(--text)', outline: 'none', width: '200px' },
   empty:       { padding: '48px 24px', color: 'var(--text-muted)', fontSize: '12px', letterSpacing: '0.06em' },
 
   table:  { display: 'flex', flexDirection: 'column' },

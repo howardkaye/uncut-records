@@ -86,7 +86,7 @@ function ReleaseCard({ release, onMove, onRequestAdvance, onRemove, onArchive, i
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
             <button
-              style={{ background: 'var(--surface-2)', border: '1px solid var(--border)', color: 'var(--text)', padding: '6px 10px', fontSize: '11px', cursor: 'pointer', fontFamily: 'var(--font)', letterSpacing: '0.04em', textAlign: 'left' }}
+              style={{ background: 'var(--pink)', border: 'none', color: 'var(--green)', padding: '7px 14px', fontSize: '11px', cursor: 'pointer', fontFamily: 'var(--font)', letterSpacing: '0.04em', textAlign: 'left', borderRadius: 'var(--radius-pill)' }}
               onClick={() => onArchive(release)}>
               ↓ move to vault
             </button>
@@ -362,7 +362,7 @@ function GateModal({ confirmMove, onClose, onConfirm, onMoveBack, gateChecked, s
               {!allDone && (
                 <div style={{ marginTop: '4px', marginBottom: '16px' }}>
                   <button
-                    style={{ width: '100%', background: 'var(--bronze)', color: '#fff', border: 'none', padding: '10px', fontSize: '12px', cursor: 'pointer', fontFamily: 'var(--font)', letterSpacing: '0.04em' }}
+                    style={{ width: '100%', background: 'var(--pink)', color: 'var(--green)', border: 'none', borderRadius: 'var(--radius-pill)', padding: '10px', fontSize: '12px', cursor: 'pointer', fontFamily: 'var(--font)', letterSpacing: '0.04em' }}
                     onClick={() => navigate(`/releases/${confirmMove.release.id}`)}>
                     Open release to complete checklist →
                   </button>
@@ -383,7 +383,7 @@ function GateModal({ confirmMove, onClose, onConfirm, onMoveBack, gateChecked, s
                   style={{ flex: 1, background: 'var(--bg)', border: '1px solid var(--border)', padding: '7px 10px', fontSize: '11px', fontFamily: 'var(--font)', color: 'var(--text)', outline: 'none' }}
                 />
                 <button
-                  style={{ background: ccSent ? 'var(--surface-2)' : 'var(--bronze)', color: ccSent ? 'var(--text-muted)' : '#fff', border: 'none', padding: '7px 14px', fontSize: '11px', fontFamily: 'var(--font)', cursor: ccEmail.trim() ? 'pointer' : 'not-allowed', opacity: ccEmail.trim() ? 1 : 0.5, letterSpacing: '0.04em', flexShrink: 0 }}
+                  style={{ background: ccSent ? 'var(--surface-2)' : 'var(--pink)', color: ccSent ? 'var(--text-muted)' : 'var(--green)', border: 'none', borderRadius: 'var(--radius-pill)', padding: '7px 14px', fontSize: '11px', fontFamily: 'var(--font)', cursor: ccEmail.trim() ? 'pointer' : 'not-allowed', opacity: ccEmail.trim() ? 1 : 0.5, letterSpacing: '0.04em', flexShrink: 0 }}
                   disabled={!ccEmail.trim()}
                   onClick={() => {
                     const subject = encodeURIComponent(`Brief: ${track.title ?? 'Track'} — ${track.artist ?? 'Artist'}`)
@@ -417,13 +417,13 @@ function GateModal({ confirmMove, onClose, onConfirm, onMoveBack, gateChecked, s
 
           <div style={{ display: 'flex', gap: '8px', marginTop: '20px' }}>
             <button
-              style={{ flex: 1, background: clConfirmed ? 'var(--bronze)' : 'var(--surface-2)', color: clConfirmed ? '#fff' : 'var(--text-muted)', border: `1px solid ${clConfirmed ? 'var(--bronze)' : 'var(--border)'}`, padding: '10px', fontSize: '12px', cursor: clConfirmed ? 'pointer' : 'not-allowed', fontFamily: 'var(--font)', letterSpacing: '0.04em', transition: 'all 0.15s' }}
+              style={{ flex: 1, background: clConfirmed ? 'var(--pink)' : 'var(--surface-2)', color: clConfirmed ? 'var(--green)' : 'var(--text-muted)', border: `1.5px solid ${clConfirmed ? 'var(--pink)' : 'var(--border)'}`, borderRadius: 'var(--radius-pill)', padding: '10px', fontSize: '12px', cursor: clConfirmed ? 'pointer' : 'not-allowed', fontFamily: 'var(--font)', letterSpacing: '0.04em', transition: 'all 0.15s' }}
               onClick={onConfirm}
               disabled={!clConfirmed}>
               Yes, go In Market
             </button>
             <button
-              style={{ background: 'var(--surface-2)', border: '1px solid var(--border)', padding: '10px 16px', fontSize: '12px', cursor: 'pointer', color: 'var(--text-muted)', fontFamily: 'var(--font)' }}
+              style={{ background: 'var(--surface-2)', border: '1.5px solid var(--border)', borderRadius: 'var(--radius-pill)', padding: '10px 16px', fontSize: '12px', cursor: 'pointer', color: 'var(--text-muted)', fontFamily: 'var(--font)' }}
               onClick={onClose}>
               Cancel
             </button>
@@ -473,7 +473,7 @@ function GateModal({ confirmMove, onClose, onConfirm, onMoveBack, gateChecked, s
             Export the full pack — Word doc + all checklist files — then upload to the Co-Brand portal.
           </div>
           <button
-            style={{ width: '100%', background: exported ? 'var(--surface-2)' : 'var(--bronze)', color: exported ? 'var(--text-muted)' : '#fff', border: exported ? '1px solid var(--border)' : 'none', padding: '10px', fontSize: '12px', cursor: exporting ? 'not-allowed' : 'pointer', fontFamily: 'var(--font)', letterSpacing: '0.04em', opacity: exporting ? 0.7 : 1, marginBottom: '16px' }}
+            style={{ width: '100%', background: exported ? 'var(--surface-2)' : 'var(--pink)', color: exported ? 'var(--text-muted)' : 'var(--green)', border: exported ? '1.5px solid var(--border)' : 'none', borderRadius: 'var(--radius-pill)', padding: '10px', fontSize: '12px', cursor: exporting ? 'not-allowed' : 'pointer', fontFamily: 'var(--font)', letterSpacing: '0.04em', opacity: exporting ? 0.7 : 1, marginBottom: '16px' }}
             onClick={handleExport} disabled={exporting}>
             {exporting ? (exportProgress || 'preparing…') : exported ? '↓ Re-export Co-Brand Pack' : '↓ Export Co-Brand Release Pack'}
           </button>
@@ -493,11 +493,11 @@ function GateModal({ confirmMove, onClose, onConfirm, onMoveBack, gateChecked, s
 
           <div style={{ display: 'flex', gap: '8px', marginTop: '20px' }}>
             <button
-              style={{ flex: 1, background: canConfirm ? 'var(--bronze)' : 'var(--surface-2)', color: canConfirm ? '#fff' : 'var(--text-muted)', border: `1px solid ${canConfirm ? 'var(--bronze)' : 'var(--border)'}`, padding: '10px', fontSize: '12px', cursor: canConfirm ? 'pointer' : 'not-allowed', fontFamily: 'var(--font)', letterSpacing: '0.04em', transition: 'all 0.15s' }}
+              style={{ flex: 1, background: canConfirm ? 'var(--pink)' : 'var(--surface-2)', color: canConfirm ? 'var(--green)' : 'var(--text-muted)', border: `1.5px solid ${canConfirm ? 'var(--pink)' : 'var(--border)'}`, borderRadius: 'var(--radius-pill)', padding: '10px', fontSize: '12px', cursor: canConfirm ? 'pointer' : 'not-allowed', fontFamily: 'var(--font)', letterSpacing: '0.04em', transition: 'all 0.15s' }}
               onClick={onConfirm} disabled={!canConfirm}>
               Yes, confirm release
             </button>
-            <button style={{ background: 'var(--surface-2)', border: '1px solid var(--border)', padding: '10px 16px', fontSize: '12px', cursor: 'pointer', color: 'var(--text-muted)', fontFamily: 'var(--font)' }}
+            <button style={{ background: 'var(--surface-2)', border: '1.5px solid var(--border)', borderRadius: 'var(--radius-pill)', padding: '10px 16px', fontSize: '12px', cursor: 'pointer', color: 'var(--text-muted)', fontFamily: 'var(--font)' }}
               onClick={onClose}>Cancel</button>
           </div>
           {prevStage && (
@@ -556,13 +556,13 @@ function GateModal({ confirmMove, onClose, onConfirm, onMoveBack, gateChecked, s
 
         <div style={{ display: 'flex', gap: '8px', marginTop: '20px' }}>
           <button
-            style={{ flex: 1, background: allChecked ? 'var(--bronze)' : 'var(--surface-2)', color: allChecked ? '#fff' : 'var(--text-muted)', border: `1px solid ${allChecked ? 'var(--bronze)' : 'var(--border)'}`, padding: '10px', fontSize: '12px', cursor: allChecked ? 'pointer' : 'not-allowed', fontFamily: 'var(--font)', letterSpacing: '0.04em', transition: 'all 0.15s' }}
+            style={{ flex: 1, background: allChecked ? 'var(--pink)' : 'var(--surface-2)', color: allChecked ? 'var(--green)' : 'var(--text-muted)', border: `1.5px solid ${allChecked ? 'var(--pink)' : 'var(--border)'}`, borderRadius: 'var(--radius-pill)', padding: '10px', fontSize: '12px', cursor: allChecked ? 'pointer' : 'not-allowed', fontFamily: 'var(--font)', letterSpacing: '0.04em', transition: 'all 0.15s' }}
             onClick={onConfirm}
             disabled={!allChecked}>
             {gate.cta}
           </button>
           <button
-            style={{ background: 'var(--surface-2)', border: '1px solid var(--border)', padding: '10px 16px', fontSize: '12px', cursor: 'pointer', color: 'var(--text-muted)', fontFamily: 'var(--font)' }}
+            style={{ background: 'var(--surface-2)', border: '1.5px solid var(--border)', borderRadius: 'var(--radius-pill)', padding: '10px 16px', fontSize: '12px', cursor: 'pointer', color: 'var(--text-muted)', fontFamily: 'var(--font)' }}
             onClick={onClose}>
             Cancel
           </button>
@@ -771,13 +771,15 @@ const s = {
     fontWeight: 500,
   },
   newBtn: {
-    background: 'var(--bronze)',
-    color: '#fff',
+    background: 'var(--pink)',
+    color: 'var(--green)',
     border: 'none',
-    padding: '7px 14px',
+    padding: '8px 20px',
     fontSize: '12px',
-    letterSpacing: '0.05em',
+    letterSpacing: '0.04em',
     cursor: 'pointer',
+    borderRadius: 'var(--radius-pill)',
+    fontFamily: 'var(--font)',
   },
   syncBtn: {
     background: 'var(--surface)',
@@ -788,6 +790,7 @@ const s = {
     letterSpacing: '0.05em',
     cursor: 'pointer',
     fontFamily: 'var(--font)',
+    borderRadius: 'var(--radius-pill)',
   },
   board: {
     display: 'flex',
@@ -813,7 +816,8 @@ const s = {
   },
   gateModal: {
     background: 'var(--surface)',
-    border: '1px solid var(--border)',
+    border: '1.5px solid var(--border)',
+    borderRadius: '20px',
     width: '100%',
     maxWidth: '420px',
     padding: '28px 32px',
@@ -828,8 +832,9 @@ const s = {
     fontSize: '11px',
     color: 'var(--text-muted)',
     background: 'var(--surface-2)',
-    padding: '1px 7px',
+    padding: '2px 10px',
     border: '1px solid var(--border)',
+    borderRadius: 'var(--radius-pill)',
   },
   columnBody: {
     flex: 1,
@@ -848,8 +853,9 @@ const s = {
   },
   card: {
     background: 'var(--surface)',
-    border: '1px solid var(--border)',
-    padding: '12px',
+    border: '1.5px solid var(--border)',
+    borderRadius: '12px',
+    padding: '14px',
     display: 'flex',
     flexDirection: 'column',
     gap: '4px',
@@ -875,8 +881,9 @@ const s = {
     letterSpacing: '0.04em',
     background: 'var(--surface-2)',
     border: '1px solid var(--border)',
-    padding: '1px 6px',
+    padding: '2px 8px',
     color: 'var(--text)',
+    borderRadius: 'var(--radius-pill)',
   },
   cardActions: {
     display: 'flex',
@@ -887,16 +894,17 @@ const s = {
   },
   moveBtn: {
     background: 'none',
-    border: '1px solid var(--border)',
+    border: '1.5px solid var(--border)',
     color: 'var(--text-muted)',
-    width: '24px',
-    height: '24px',
+    width: '26px',
+    height: '26px',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
     cursor: 'pointer',
     fontSize: '13px',
     padding: 0,
+    borderRadius: '50%',
   },
   loading: {
     padding: '48px 24px',
@@ -915,7 +923,8 @@ const s = {
   },
   modal: {
     background: 'var(--surface)',
-    border: '1px solid var(--border)',
+    border: '1.5px solid var(--border)',
+    borderRadius: '20px',
     width: '100%',
     maxWidth: '400px',
     padding: '32px',
@@ -952,7 +961,8 @@ const s = {
   },
   input: {
     background: 'var(--bg)',
-    border: '1px solid var(--border)',
+    border: '1.5px solid var(--border)',
+    borderRadius: '8px',
     padding: '9px 12px',
     color: 'var(--text)',
     outline: 'none',
@@ -965,12 +975,14 @@ const s = {
   },
   submitBtn: {
     marginTop: '20px',
-    background: 'var(--bronze)',
-    color: '#fff',
+    background: 'var(--pink)',
+    color: 'var(--green)',
     border: 'none',
-    padding: '11px',
+    borderRadius: 'var(--radius-pill)',
+    padding: '12px',
     letterSpacing: '0.06em',
     fontSize: '12px',
     cursor: 'pointer',
+    fontFamily: 'var(--font)',
   },
 }

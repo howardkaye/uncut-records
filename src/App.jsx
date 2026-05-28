@@ -3,6 +3,7 @@ import { AuthProvider, useAuth } from './context/AuthContext'
 import Login from './components/Login'
 import Nav from './components/Nav'
 import ChatBox from './components/ChatBox'
+import Home from './pages/Home'
 import Pipeline from './pages/Pipeline'
 import TrackPool from './pages/TrackPool'
 import Releases from './pages/Releases'
@@ -22,7 +23,7 @@ function ProtectedRoute({ children, roles }) {
   if (!session) return <Navigate to="/login" replace />
 
   if (roles && profile && !roles.includes(profile.role)) {
-    return <Navigate to="/pipeline" replace />
+    return <Navigate to="/" replace />
   }
 
   return children
@@ -34,6 +35,11 @@ function Shell() {
       <Nav />
       <main>
         <Routes>
+          <Route path="/" element={
+            <ProtectedRoute>
+              <Home />
+            </ProtectedRoute>
+          } />
           <Route path="/pipeline" element={
             <ProtectedRoute roles={['coordinator', 'selector']}>
               <Pipeline />
@@ -84,7 +90,7 @@ function Shell() {
               <Guide />
             </ProtectedRoute>
           } />
-          <Route path="*" element={<Navigate to="/pipeline" replace />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>
       <ChatBox />
@@ -100,7 +106,7 @@ function AppRoutes() {
   return (
     <Routes>
       <Route path="/login" element={
-        session ? <Navigate to="/pipeline" replace /> : <Login />
+        session ? <Navigate to="/" replace /> : <Login />
       } />
       <Route path="/*" element={
         session ? <Shell /> : <Navigate to="/login" replace />

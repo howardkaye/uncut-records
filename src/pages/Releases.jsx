@@ -104,7 +104,7 @@ export default function Releases() {
                     </td>
                     <td style={s.td}>
                       {r.track?.cleared
-                        ? <span style={{ ...s.chip, color: 'var(--bronze)', borderColor: 'var(--bronze-dim)', background: '#f5ede0' }}>cleared</span>
+                        ? <span style={{ ...s.chip, color: 'var(--green)', borderColor: 'var(--pink)', background: 'var(--pink)' }}>cleared</span>
                         : <span style={{ ...s.chip, color: 'var(--text-muted)' }}>uncleared</span>}
                     </td>
                   </tr>
@@ -127,12 +127,12 @@ const s = {
     padding: '20px 24px 16px', borderBottom: '1px solid var(--border)', flexWrap: 'wrap', gap: '12px',
   },
   pageTitle: { fontSize: '11px', letterSpacing: '0.12em', color: 'var(--text-muted)', fontWeight: 500 },
-  filters: { display: 'flex', border: '1px solid var(--border)', overflow: 'hidden' },
+  filters: { display: 'flex', gap: '6px', flexWrap: 'wrap' },
   filterBtn: {
-    background: 'var(--surface)', border: 'none', borderRight: '1px solid var(--border)',
-    padding: '7px 12px', fontSize: '11px', letterSpacing: '0.05em', color: 'var(--text-muted)', cursor: 'pointer',
+    background: '#fff', border: '1.5px solid var(--border)', borderRadius: 'var(--radius-pill)',
+    padding: '6px 14px', fontSize: '11px', letterSpacing: '0.05em', color: 'var(--text-muted)', cursor: 'pointer', fontFamily: 'var(--font)',
   },
-  filterActive: { background: 'var(--surface-2)', color: 'var(--text)', fontWeight: 500 },
+  filterActive: { background: 'var(--pink)', borderColor: 'var(--pink)', color: 'var(--green)', fontWeight: 600 },
   tableWrap: { flex: 1, overflowY: 'auto' },
   table: { width: '100%', borderCollapse: 'collapse' },
   th: {
@@ -141,10 +141,10 @@ const s = {
     borderBottom: '1px solid var(--border)', position: 'sticky', top: 0, textTransform: 'uppercase',
   },
   td: { fontSize: '12px', padding: '10px 16px', borderBottom: '1px solid var(--border)', color: 'var(--text)', verticalAlign: 'middle' },
-  titleLink: { color: 'var(--bronze)', textDecoration: 'none', fontWeight: 500 },
+  titleLink: { color: 'var(--green)', textDecoration: 'none', fontWeight: 500 },
   chip: {
-    fontSize: '10px', letterSpacing: '0.04em', padding: '2px 8px',
-    border: '1px solid var(--border)', background: 'var(--surface-2)',
+    fontSize: '10px', letterSpacing: '0.04em', padding: '2px 10px',
+    border: '1px solid var(--border)', background: 'var(--surface-2)', borderRadius: 'var(--radius-pill)',
   },
   empty: { padding: '48px 24px', color: 'var(--text-muted)', fontSize: '12px', letterSpacing: '0.06em' },
   footer: {

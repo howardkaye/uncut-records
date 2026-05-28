@@ -99,7 +99,7 @@ function LogDataForm({ releaseId, onSaved }) {
     <div style={{ marginTop: '14px', borderTop: '1px solid var(--border)', paddingTop: '14px' }}>
       {!open ? (
         <button
-          style={{ background: 'none', border: '1px solid var(--border)', padding: '6px 14px', fontSize: '11px', letterSpacing: '0.06em', cursor: 'pointer', color: 'var(--text-muted)', fontFamily: 'var(--font)' }}
+          style={{ background: '#fff', border: '1.5px solid var(--border)', borderRadius: 'var(--radius-pill)', padding: '6px 16px', fontSize: '11px', letterSpacing: '0.06em', cursor: 'pointer', color: 'var(--text-muted)', fontFamily: 'var(--font)' }}
           onClick={() => setOpen(true)}>
           + log update
         </button>
@@ -132,11 +132,11 @@ function LogDataForm({ releaseId, onSaved }) {
           </div>
           <div style={{ display: 'flex', gap: '8px' }}>
             <button type="submit" disabled={saving}
-              style={{ background: 'var(--bronze)', color: '#fff', border: 'none', padding: '7px 16px', fontSize: '11px', letterSpacing: '0.06em', cursor: 'pointer', fontFamily: 'var(--font)' }}>
+              style={{ background: 'var(--pink)', color: 'var(--green)', border: 'none', borderRadius: 'var(--radius-pill)', padding: '7px 20px', fontSize: '11px', letterSpacing: '0.06em', cursor: 'pointer', fontFamily: 'var(--font)' }}>
               {saving ? 'saving…' : 'save'}
             </button>
             <button type="button" onClick={() => setOpen(false)}
-              style={{ background: 'none', border: '1px solid var(--border)', padding: '7px 14px', fontSize: '11px', color: 'var(--text-muted)', cursor: 'pointer', fontFamily: 'var(--font)' }}>
+              style={{ background: 'none', border: '1.5px solid var(--border)', borderRadius: 'var(--radius-pill)', padding: '7px 14px', fontSize: '11px', color: 'var(--text-muted)', cursor: 'pointer', fontFamily: 'var(--font)' }}>
               cancel
             </button>
           </div>
@@ -327,26 +327,26 @@ const s = {
   pageTitle:   { fontSize: '11px', letterSpacing: '0.12em', color: 'var(--text-muted)', fontWeight: 500 },
   pageSubtitle: { fontSize: '12px', color: 'var(--text)', marginTop: '3px' },
   headerRight: { display: 'flex', alignItems: 'center', gap: '10px' },
-  filters:     { display: 'flex', border: '1px solid var(--border)', overflow: 'hidden' },
-  filterBtn:   { background: 'var(--surface)', border: 'none', borderRight: '1px solid var(--border)', padding: '7px 12px', fontSize: '11px', letterSpacing: '0.05em', color: 'var(--text-muted)', cursor: 'pointer', fontFamily: 'var(--font)' },
-  filterActive: { background: 'var(--surface-2)', color: 'var(--text)', fontWeight: 500 },
-  weeklyBtn:   { background: 'var(--bronze)', border: '1px solid var(--bronze)', padding: '7px 16px', fontSize: '11px', letterSpacing: '0.06em', cursor: 'pointer', color: '#fff', fontFamily: 'var(--font)' },
-  copyBtn:     { background: 'var(--surface)', border: '1px solid var(--border)', padding: '7px 16px', fontSize: '11px', letterSpacing: '0.06em', cursor: 'pointer', color: 'var(--text)', fontFamily: 'var(--font)' },
-  copiedBtn:   { background: 'var(--bronze)', color: '#fff', borderColor: 'var(--bronze)' },
+  filters:     { display: 'flex', gap: '6px' },
+  filterBtn:   { background: '#fff', border: '1.5px solid var(--border)', borderRadius: 'var(--radius-pill)', padding: '7px 16px', fontSize: '11px', letterSpacing: '0.05em', color: 'var(--text-muted)', cursor: 'pointer', fontFamily: 'var(--font)' },
+  filterActive: { background: 'var(--pink)', borderColor: 'var(--pink)', color: 'var(--green)', fontWeight: 600 },
+  weeklyBtn:   { background: 'var(--pink)', border: 'none', borderRadius: 'var(--radius-pill)', padding: '7px 16px', fontSize: '11px', letterSpacing: '0.06em', cursor: 'pointer', color: 'var(--green)', fontFamily: 'var(--font)' },
+  copyBtn:     { background: '#fff', border: '1.5px solid var(--border)', borderRadius: 'var(--radius-pill)', padding: '7px 16px', fontSize: '11px', letterSpacing: '0.06em', cursor: 'pointer', color: 'var(--text)', fontFamily: 'var(--font)' },
+  copiedBtn:   { background: 'var(--pink)', color: 'var(--green)', borderColor: 'var(--pink)' },
 
   empty: { padding: '48px 24px', color: 'var(--text-muted)', fontSize: '12px', letterSpacing: '0.06em' },
 
   cards: { display: 'flex', flexDirection: 'column', gap: '0', padding: '24px', gap: '16px' },
 
-  card:       { background: 'var(--surface)', border: '1px solid var(--border)', padding: '20px 24px' },
+  card:       { background: 'var(--surface)', border: '1.5px solid var(--border)', borderRadius: '16px', padding: '20px 24px' },
   cardHeader: { display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px', flexWrap: 'wrap' },
-  cardTitle:  { fontSize: '15px', fontWeight: 500, color: 'var(--bronze)', textDecoration: 'none', display: 'block', marginBottom: '2px' },
+  cardTitle:  { fontSize: '15px', fontWeight: 500, color: 'var(--green)', textDecoration: 'none', display: 'block', marginBottom: '2px' },
   cardArtist: { fontSize: '12px', color: 'var(--text-muted)' },
   cardMeta:   { display: 'flex', gap: '6px', alignItems: 'center', flexShrink: 0 },
   cardDivider: { height: '1px', background: 'var(--border)', margin: '16px 0' },
 
-  stagePill: { fontSize: '10px', letterSpacing: '0.06em', color: 'var(--bronze)', border: '1px solid var(--bronze-dim)', background: '#f5ede0', padding: '2px 8px' },
-  datePill:  { fontSize: '10px', letterSpacing: '0.04em', color: 'var(--text-muted)', border: '1px solid var(--border)', background: 'var(--surface-2)', padding: '2px 8px' },
+  stagePill: { fontSize: '10px', letterSpacing: '0.06em', color: 'var(--green)', border: '1.5px solid var(--border)', background: 'var(--pink)', padding: '2px 10px', borderRadius: 'var(--radius-pill)' },
+  datePill:  { fontSize: '10px', letterSpacing: '0.04em', color: 'var(--text-muted)', border: '1px solid var(--border)', background: 'var(--surface-2)', padding: '2px 8px', borderRadius: 'var(--radius-pill)' },
 
   statsRow:  { display: 'flex', gap: '0' },
   stat:      { flex: 1, padding: '0 16px 0 0' },

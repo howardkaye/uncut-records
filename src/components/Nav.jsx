@@ -2,13 +2,13 @@ import { NavLink, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 
 const allLinks = [
-  { to: '/tracks',     label: 'track pool',  roles: ['coordinator', 'selector'] },
-  { to: '/pipeline',   label: 'pipeline',    roles: ['coordinator', 'selector'] },
-  { to: '/releases',   label: 'releases',    roles: ['coordinator', 'content'] },
-  { to: '/reports',    label: 'reports',     roles: ['coordinator'] },
-  { to: '/calendar',   label: 'calendar',    roles: ['coordinator'] },
-  { to: '/vault',      label: 'vault',       roles: ['coordinator'] },
-  { to: '/guide',      label: 'guide',       roles: ['coordinator', 'selector', 'content'] },
+  { to: '/tracks',     label: 'Track Pool',  roles: ['coordinator', 'selector'] },
+  { to: '/pipeline',   label: 'Pipeline',    roles: ['coordinator', 'selector'] },
+  { to: '/releases',   label: 'Releases',    roles: ['coordinator', 'content'] },
+  { to: '/reports',    label: 'Reports',     roles: ['coordinator'] },
+  { to: '/calendar',   label: 'Calendar',    roles: ['coordinator'] },
+  { to: '/vault',      label: 'Vault',       roles: ['coordinator'] },
+  { to: '/guide',      label: 'Guide',       roles: ['coordinator', 'selector', 'content'] },
 ]
 
 export default function Nav() {
@@ -26,7 +26,7 @@ export default function Nav() {
 
   return (
     <nav style={styles.nav}>
-      <NavLink to="/pipeline" style={{ textDecoration: 'none' }}>
+      <NavLink to="/" style={{ textDecoration: 'none' }}>
         <div style={styles.wordmark}>UNCUT</div>
       </NavLink>
 
@@ -37,7 +37,8 @@ export default function Nav() {
             to={l.to}
             style={({ isActive }) => ({
               ...styles.link,
-              color: isActive ? 'var(--bronze)' : 'var(--text-muted)',
+              color: isActive ? 'var(--green)' : 'var(--text-muted)',
+              fontWeight: isActive ? 600 : 400,
             })}
           >
             {l.label}
@@ -47,13 +48,13 @@ export default function Nav() {
 
       <div style={styles.user}>
         <NavLink to="/profile" style={({ isActive }) => ({
-          ...styles.profileLink,
-          color: isActive ? 'var(--bronze)' : 'var(--text-muted)',
-          borderColor: isActive ? 'var(--bronze-dim)' : 'var(--border)',
+          ...styles.profileBtn,
+          background: isActive ? 'var(--green)' : 'transparent',
+          color: isActive ? '#fff' : 'var(--green)',
         })}>
-          profile
+          Profile
         </NavLink>
-        <button onClick={handleSignOut} style={styles.signOut}>sign out</button>
+        <button onClick={handleSignOut} style={styles.signOut}>Sign out</button>
       </div>
     </nav>
   )
@@ -61,56 +62,47 @@ export default function Nav() {
 
 const styles = {
   nav: {
-    height: '48px',
-    background: 'var(--surface)',
-    borderBottom: '1px solid var(--border)',
+    height: '60px',
+    background: '#fff',
+    borderBottom: '1.5px solid var(--border)',
     display: 'flex',
     alignItems: 'center',
-    padding: '0 24px',
+    padding: '0 32px',
     gap: '32px',
     position: 'sticky',
     top: 0,
     zIndex: 100,
   },
   wordmark: {
-    fontSize: '13px',
-    fontWeight: '600',
-    letterSpacing: '0.14em',
-    color: 'var(--bronze)',
-    marginRight: '8px',
+    fontFamily: 'var(--font-display)',
+    fontSize: '22px',
+    fontWeight: 900,
+    color: 'var(--green)',
+    letterSpacing: '0.02em',
+    textTransform: 'uppercase',
+    lineHeight: 1,
   },
-  links: {
-    display: 'flex',
-    gap: '24px',
-    flex: 1,
-  },
-  link: {
+  links: { display: 'flex', gap: '24px', flex: 1 },
+  link:  { fontFamily: 'var(--font)', fontSize: '13px', transition: 'color 0.1s' },
+  user:  { display: 'flex', alignItems: 'center', gap: '12px' },
+  profileBtn: {
+    fontFamily: 'var(--font)',
     fontSize: '12px',
-    letterSpacing: '0.06em',
-    transition: 'color 0.1s',
-  },
-  user: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '16px',
-  },
-  profileLink: {
-    fontSize: '11px',
-    letterSpacing: '0.06em',
-    background: 'var(--surface-2)',
-    padding: '2px 10px',
-    border: '1px solid',
+    padding: '5px 18px',
+    borderRadius: 'var(--radius-pill)',
+    border: '1.5px solid var(--green)',
+    cursor: 'pointer',
+    transition: 'all 0.15s',
     textDecoration: 'none',
-    transition: 'color 0.1s',
+    display: 'inline-block',
   },
   signOut: {
-    fontSize: '11px',
+    fontFamily: 'var(--font)',
+    fontSize: '12px',
     color: 'var(--text-muted)',
     background: 'none',
     border: 'none',
-    letterSpacing: '0.06em',
     cursor: 'pointer',
     padding: 0,
-    fontFamily: 'var(--font)',
   },
 }
