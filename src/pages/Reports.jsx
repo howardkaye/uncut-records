@@ -336,7 +336,7 @@ const s = {
 
   empty: { padding: '48px 24px', color: 'var(--text-muted)', fontSize: '12px', letterSpacing: '0.06em' },
 
-  cards: { display: 'flex', flexDirection: 'column', gap: '0', padding: '24px', gap: '16px' },
+  cards: { display: 'flex', flexDirection: 'column', gap: '16px', padding: '24px' },
 
   card:       { background: 'var(--surface)', border: '1.5px solid var(--border)', borderRadius: '16px', padding: '20px 24px' },
   cardHeader: { display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px', flexWrap: 'wrap' },
