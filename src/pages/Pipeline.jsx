@@ -56,86 +56,72 @@ const STAGE_GATES = {
   },
 }
 
+function daysInStage(release) {
+  const d = Math.round((new Date() - new Date(release.updated_at || release.created_at)) / 86400000)
+  if (d === 0) return 'today'
+  return `${d}d in stage`
+}
+
 function ReleaseCard({ release, onMove, onRequestAdvance, onRemove, onArchive, isCoordinator }) {
-  const { track, stage, release_date } = release
+  const { track, stage } = release
   const stageIdx = STAGES.findIndex(s => s.key === stage)
   const canAdvance = stageIdx < STAGES.length - 1
   const canRetreat = stageIdx > 0
   const [confirmRemove, setConfirmRemove] = useState(false)
 
+  if (confirmRemove) {
+    return (
+      <div style={s.card}>
+        <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '10px', lineHeight: 1.4 }}>
+          Done with <strong style={{ color: 'var(--green)' }}>{track?.title}</strong>?
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+          <button style={s.cardActionBtn} onClick={() => onArchive(release)}>↓ Move to vault</button>
+          <button style={{ ...s.cardActionBtn, background: 'none', border: '1px solid #d04040', color: '#d04040', borderRadius: 'var(--radius-pill)' }} onClick={() => onRemove(release)}>Remove entirely</button>
+          <button style={{ ...s.cardActionBtn, background: 'none', border: '1.5px solid var(--border)', color: 'var(--text-muted)', borderRadius: 'var(--radius-pill)' }} onClick={() => setConfirmRemove(false)}>Cancel</button>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div style={s.card}>
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '8px' }}>
-        <Link to={`/releases/${release.id}`} style={{ ...s.cardTitle, color: 'var(--text)', textDecoration: 'none', flex: 1 }}>
-          {track?.title ?? '—'}
-        </Link>
-        {isCoordinator && !confirmRemove && (
-          <button
-            style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: '14px', cursor: 'pointer', padding: '0 2px', lineHeight: 1, opacity: 0.5, flexShrink: 0 }}
-            onClick={() => setConfirmRemove(true)}
-            title="Archive or remove">
-            ×
-          </button>
+      {/* Artist + dismiss */}
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+        <div style={s.cardArtist}>{track?.artist ?? '—'}</div>
+        {isCoordinator && (
+          <button style={s.cardX} onClick={() => setConfirmRemove(true)}>×</button>
         )}
       </div>
 
-      {confirmRemove ? (
-        <div style={{ marginTop: '6px' }}>
-          <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '8px', lineHeight: 1.4 }}>
-            Done with this release?
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-            <button
-              style={{ background: 'var(--pink)', border: 'none', color: 'var(--green)', padding: '7px 14px', fontSize: '11px', cursor: 'pointer', fontFamily: 'var(--font)', letterSpacing: '0.04em', textAlign: 'left', borderRadius: 'var(--radius-pill)' }}
-              onClick={() => onArchive(release)}>
-              ↓ move to vault
-            </button>
-            <div style={{ display: 'flex', gap: '5px' }}>
-              <button
-                style={{ flex: 1, background: 'none', border: '1px solid #b84040', color: '#b84040', padding: '5px', fontSize: '10px', cursor: 'pointer', fontFamily: 'var(--font)', letterSpacing: '0.04em' }}
-                onClick={() => onRemove(release)}>
-                remove entirely
-              </button>
-              <button
-                style={{ background: 'var(--surface-2)', border: '1px solid var(--border)', padding: '5px 10px', fontSize: '11px', cursor: 'pointer', color: 'var(--text-muted)', fontFamily: 'var(--font)' }}
-                onClick={() => setConfirmRemove(false)}>
-                cancel
-              </button>
-            </div>
-          </div>
-        </div>
-      ) : (
-        <>
-          <div style={s.cardArtist}>{track?.artist ?? '—'}</div>
+      {/* Track title */}
+      <Link to={`/releases/${release.id}`} style={s.cardTitle}>
+        {track?.title ?? '—'}
+      </Link>
 
-          <div style={s.cardMeta}>
-            {release_date && (
-              <span style={s.chip}>{new Date(release_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</span>
-            )}
-            {release_date && (
-              <span style={{ ...s.chip, color: 'var(--text-muted)' }}>{daysLabel(release_date)}</span>
-            )}
-            {track?.cleared && <span style={{ ...s.chip, color: 'var(--bronze)' }}>cleared</span>}
-          </div>
+      {/* Meta row */}
+      <div style={s.cardMeta}>
+        <span style={s.cardMetaText}>{daysInStage(release)}</span>
+        {release.release_date && (
+          <>
+            <span style={s.cardDot}>·</span>
+            <span style={s.cardMetaText}>{new Date(release.release_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</span>
+          </>
+        )}
+      </div>
 
-          {isCoordinator && (
-            <div style={s.cardActions}>
-              {canRetreat && (
-                <button style={s.moveBtn} onClick={() => onMove(release, STAGES[stageIdx - 1].key)} title="Move back">
-                  ←
-                </button>
-              )}
-              <div style={{ flex: 1 }} />
-              {canAdvance && (
-                <button style={{ ...s.moveBtn, color: 'var(--bronze)' }}
-                  onClick={() => onRequestAdvance(release, STAGES[stageIdx + 1].key)}
-                  title="Advance">
-                  →
-                </button>
-              )}
-            </div>
+      {/* Advance / retreat */}
+      {isCoordinator && (
+        <div style={s.cardActions}>
+          {canRetreat && (
+            <button style={s.moveBtn} onClick={() => onMove(release, STAGES[stageIdx - 1].key)}>←</button>
           )}
-        </>
+          <div style={{ flex: 1 }} />
+          {canAdvance && (
+            <button style={{ ...s.moveBtn, borderColor: 'var(--green)', color: 'var(--green)' }}
+              onClick={() => onRequestAdvance(release, STAGES[stageIdx + 1].key)}>→</button>
+          )}
+        </div>
       )}
     </div>
   )
@@ -757,7 +743,7 @@ const s = {
   page: {
     display: 'flex',
     flexDirection: 'column',
-    height: 'calc(100vh - 48px)',
+    height: 'calc(100vh - 60px)',
     overflow: 'hidden',
   },
   header: {
@@ -809,24 +795,27 @@ const s = {
   board: {
     display: 'flex',
     flex: 1,
-    gap: '0',
+    gap: '12px',
     overflowX: 'auto',
     overflowY: 'hidden',
+    padding: '16px 24px 24px',
   },
   column: {
-    flex: '1 1 0',
+    flex: '0 0 210px',
     display: 'flex',
     flexDirection: 'column',
-    borderRight: '1px solid var(--border)',
-    minWidth: 0,
+    border: '1.5px solid var(--border)',
+    borderRadius: '16px',
+    overflow: 'hidden',
+    background: '#fff',
   },
   columnHeader: {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: '12px 16px',
-    background: 'var(--surface)',
-    borderBottom: '1px solid var(--border)',
+    padding: '14px 16px 12px',
+    borderBottom: '1.5px solid var(--border)',
+    flexShrink: 0,
   },
   gateModal: {
     background: 'var(--surface)',
@@ -837,67 +826,95 @@ const s = {
     padding: '28px 32px',
   },
   columnLabel: {
-    fontSize: '11px',
-    letterSpacing: '0.08em',
-    fontWeight: 500,
-    color: 'var(--text)',
+    fontFamily: 'var(--font)',
+    fontSize: '14px',
+    fontWeight: 600,
+    color: 'var(--green)',
   },
   columnCount: {
-    fontSize: '11px',
+    fontFamily: 'var(--font)',
+    fontSize: '13px',
     color: 'var(--text-muted)',
-    background: 'var(--surface-2)',
-    padding: '2px 10px',
-    border: '1px solid var(--border)',
-    borderRadius: 'var(--radius-pill)',
+    fontWeight: 400,
   },
   columnBody: {
     flex: 1,
     overflowY: 'auto',
-    padding: '12px 10px',
+    padding: '10px 10px 8px',
     display: 'flex',
     flexDirection: 'column',
     gap: '8px',
-    background: 'var(--bg)',
   },
   empty: {
     color: 'var(--border)',
-    fontSize: '16px',
+    fontSize: '22px',
     textAlign: 'center',
-    paddingTop: '20px',
+    padding: '24px 0',
   },
   card: {
-    background: 'var(--surface)',
+    background: '#fff',
     border: '1.5px solid var(--border)',
     borderRadius: '12px',
-    padding: '14px',
+    padding: '12px 14px',
     display: 'flex',
     flexDirection: 'column',
-    gap: '4px',
-  },
-  cardTitle: {
-    fontSize: '12px',
-    fontWeight: 500,
-    color: 'var(--text)',
-    lineHeight: 1.3,
+    gap: '2px',
   },
   cardArtist: {
-    fontSize: '11px',
-    color: 'var(--text-muted)',
+    fontFamily: 'var(--font)',
+    fontSize: '13px',
+    fontWeight: 700,
+    color: 'var(--green)',
+    letterSpacing: '0.01em',
+    lineHeight: 1.2,
+  },
+  cardTitle: {
+    fontFamily: 'var(--font)',
+    fontSize: '13px',
+    fontWeight: 400,
+    color: 'var(--text)',
+    textDecoration: 'none',
+    lineHeight: 1.3,
+    display: 'block',
+    marginBottom: '4px',
   },
   cardMeta: {
     display: 'flex',
-    flexWrap: 'wrap',
+    alignItems: 'center',
     gap: '4px',
-    marginTop: '6px',
   },
-  chip: {
-    fontSize: '10px',
-    letterSpacing: '0.04em',
-    background: 'var(--surface-2)',
-    border: '1px solid var(--border)',
-    padding: '2px 8px',
-    color: 'var(--text)',
+  cardMetaText: {
+    fontFamily: 'var(--font)',
+    fontSize: '11px',
+    color: 'var(--text-muted)',
+  },
+  cardDot: {
+    fontFamily: 'var(--font)',
+    fontSize: '11px',
+    color: 'var(--border)',
+  },
+  cardX: {
+    background: 'none',
+    border: 'none',
+    color: 'var(--text-muted)',
+    fontSize: '16px',
+    cursor: 'pointer',
+    padding: '0 0 0 4px',
+    lineHeight: 1,
+    opacity: 0.5,
+    flexShrink: 0,
+  },
+  cardActionBtn: {
+    background: 'var(--pink)',
+    border: 'none',
+    color: 'var(--green)',
+    padding: '7px 14px',
+    fontSize: '12px',
+    cursor: 'pointer',
+    fontFamily: 'var(--font)',
+    textAlign: 'left',
     borderRadius: 'var(--radius-pill)',
+    width: '100%',
   },
   cardActions: {
     display: 'flex',

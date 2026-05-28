@@ -483,15 +483,15 @@ export default function TrackPool() {
       {/* ── Header ── */}
       <div style={s.header}>
         <div style={s.headerLeft}>
-          {counts.new > 0 && (
-            <div style={s.pageSuper}>INCOMING · {counts.new} UNHEARD</div>
-          )}
           <div style={s.pageTitle}>TRACK POOL</div>
+          {counts.new > 0 && (
+            <span style={s.pageSuper}>INCOMING · {counts.new} UNHEARD</span>
+          )}
         </div>
         <div style={s.headerRight}>
           <input
             style={s.search}
-            placeholder="Search tracks…"
+            placeholder="Search…"
             value={search}
             onChange={e => setSearch(e.target.value)}
           />
@@ -642,11 +642,11 @@ const s = {
   page:    { display: 'flex', flexDirection: 'column', height: 'calc(100vh - 60px)', overflow: 'hidden', background: '#fff' },
   loading: { padding: '48px 32px', color: 'var(--text-muted)', fontFamily: 'var(--font)' },
 
-  header:      { display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', padding: '20px 32px 12px', gap: '16px' },
-  headerLeft:  { display: 'flex', flexDirection: 'column', gap: '2px' },
-  headerRight: { display: 'flex', gap: '10px', alignItems: 'center', paddingBottom: '6px' },
-  pageSuper:   { fontFamily: 'var(--font)', fontSize: '11px', color: 'var(--text-muted)', letterSpacing: '0.1em', textTransform: 'uppercase' },
-  pageTitle:   { fontFamily: 'var(--font-display)', fontSize: 'clamp(36px, 5vw, 64px)', fontWeight: 900, color: 'var(--green)', letterSpacing: '-0.01em', lineHeight: 0.9 },
+  header:      { display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '20px 32px 12px', gap: '16px' },
+  headerLeft:  { display: 'flex', alignItems: 'baseline', gap: '20px' },
+  headerRight: { display: 'flex', gap: '10px', alignItems: 'center' },
+  pageTitle:   { fontFamily: 'var(--font-display)', fontSize: 'clamp(36px, 5vw, 60px)', fontWeight: 900, color: 'var(--green)', letterSpacing: '-0.01em', lineHeight: 1 },
+  pageSuper:   { fontFamily: 'var(--font)', fontSize: '12px', color: 'var(--text-muted)', letterSpacing: '0.06em' },
 
   search:    { background: '#fff', border: '1.5px solid var(--border)', borderRadius: 'var(--radius-pill)', padding: '8px 18px', fontSize: '13px', fontFamily: 'var(--font)', color: 'var(--text)', outline: 'none', width: '220px' },
   btnUpload: { background: '#fff', color: 'var(--green)', border: '1.5px solid var(--green)', borderRadius: 'var(--radius-pill)', padding: '8px 20px', fontSize: '13px', fontFamily: 'var(--font)', cursor: 'pointer', fontWeight: 500 },
