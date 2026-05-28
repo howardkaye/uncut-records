@@ -7,31 +7,19 @@ const TILES = [
   { label: 'Pipeline',   to: '/pipeline', query: () => supabase.from('releases').select('id', { count: 'exact', head: true }).neq('archived', true) },
   { label: 'Releases',   to: '/releases', query: () => supabase.from('releases').select('id', { count: 'exact', head: true }).in('stage', ['released', 'reporting']) },
   { label: 'Reports',    to: '/reports',  query: null },
-  { label: 'Calendar',   to: '/calendar', query: null },
+  { label: 'Guide',      to: '/guide',    query: null },
   { label: 'Vault',      to: '/vault',    query: () => supabase.from('releases').select('id', { count: 'exact', head: true }).eq('archived', true) },
-]
-
-const TICKER_STATS = [
-  { label: 'RELEASES THIS QUARTER', query: () => supabase.from('releases').select('id', { count: 'exact', head: true }).in('stage', ['released', 'reporting']).gte('created_at', new Date(new Date().getFullYear(), Math.floor(new Date().getMonth() / 3) * 3, 1).toISOString()) },
-  { label: 'TRACKS IN PIPELINE',    query: () => supabase.from('releases').select('id', { count: 'exact', head: true }).neq('archived', true) },
-  { label: 'NEW IN POOL',           query: () => supabase.from('tracks').select('id', { count: 'exact', head: true }).eq('cleared', false) },
 ]
 
 export default function Home() {
   const navigate = useNavigate()
   const [counts, setCounts] = useState({})
-  const [ticker, setTicker] = useState({})
 
   useEffect(() => {
     TILES.forEach((tile, i) => {
       if (!tile.query) return
       tile.query().then(({ count }) => {
         setCounts(prev => ({ ...prev, [i]: count ?? 0 }))
-      })
-    })
-    TICKER_STATS.forEach((stat, i) => {
-      stat.query().then(({ count }) => {
-        setTicker(prev => ({ ...prev, [i]: count ?? 0 }))
       })
     })
   }, [])
@@ -56,15 +44,6 @@ export default function Home() {
         ))}
       </div>
 
-      {/* Stats ticker */}
-      <div style={s.ticker}>
-        {TICKER_STATS.map((stat, i) => (
-          <span key={i} style={s.tickerItem}>
-            {ticker[i] ?? '—'} {stat.label}
-            {i < TICKER_STATS.length - 1 && <span style={s.tickerDot}> · </span>}
-          </span>
-        ))}
-      </div>
     </div>
   )
 }
@@ -131,12 +110,4 @@ const s = {
     color: 'var(--green)',
     opacity: 0.6,
   },
-  ticker: {
-    fontSize: '11px',
-    letterSpacing: '0.08em',
-    color: 'var(--text-muted)',
-    textAlign: 'center',
-  },
-  tickerItem: {},
-  tickerDot: { margin: '0 8px' },
 }

@@ -693,7 +693,10 @@ export default function Pipeline() {
   return (
     <div style={s.page}>
       <div style={s.header}>
-        <span style={s.pageTitle}>PIPELINE</span>
+        <div>
+          <div style={s.pageSuper}>{releases.length} TRACKS MOVING</div>
+          <div style={s.pageTitle}>PIPELINE</div>
+        </div>
         {isCoordinator && (
           <button style={s.newBtn} onClick={() => setShowModal(true)}>+ new release</button>
         )}
@@ -759,16 +762,27 @@ const s = {
   },
   header: {
     display: 'flex',
-    alignItems: 'center',
+    alignItems: 'flex-end',
     justifyContent: 'space-between',
     padding: '20px 24px 16px',
     borderBottom: '1px solid var(--border)',
+    gap: '16px',
+  },
+  pageSuper: {
+    fontFamily: 'var(--font)',
+    fontSize: '11px',
+    letterSpacing: '0.1em',
+    color: 'var(--text-muted)',
+    textTransform: 'uppercase',
+    marginBottom: '2px',
   },
   pageTitle: {
-    fontSize: '11px',
-    letterSpacing: '0.12em',
-    color: 'var(--text-muted)',
-    fontWeight: 500,
+    fontFamily: 'var(--font-display)',
+    fontSize: 'clamp(36px, 5vw, 64px)',
+    fontWeight: 900,
+    color: 'var(--green)',
+    letterSpacing: '-0.01em',
+    lineHeight: 0.9,
   },
   newBtn: {
     background: 'var(--pink)',

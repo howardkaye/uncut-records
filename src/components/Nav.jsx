@@ -6,7 +6,6 @@ const allLinks = [
   { to: '/pipeline',   label: 'Pipeline',    roles: ['coordinator', 'selector'] },
   { to: '/releases',   label: 'Releases',    roles: ['coordinator', 'content'] },
   { to: '/reports',    label: 'Reports',     roles: ['coordinator'] },
-  { to: '/calendar',   label: 'Calendar',    roles: ['coordinator'] },
   { to: '/vault',      label: 'Vault',       roles: ['coordinator'] },
   { to: '/guide',      label: 'Guide',       roles: ['coordinator', 'selector', 'content'] },
 ]

@@ -55,8 +55,8 @@ export default function Vault() {
     <div style={s.page}>
       <div style={s.header}>
         <div>
+          <div style={s.pageSuper}>{releases.length} ARCHIVED</div>
           <div style={s.pageTitle}>VAULT</div>
-          <div style={s.pageSubtitle}>archived releases</div>
         </div>
         <input
           style={s.search}
@@ -108,10 +108,10 @@ export default function Vault() {
 }
 
 const s = {
-  page:        { display: 'flex', flexDirection: 'column', minHeight: 'calc(100vh - 48px)' },
-  header:      { display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', padding: '20px 24px 16px', borderBottom: '1px solid var(--border)', gap: '16px', flexWrap: 'wrap' },
-  pageTitle:   { fontSize: '11px', letterSpacing: '0.12em', color: 'var(--text-muted)', fontWeight: 500 },
-  pageSubtitle: { fontSize: '12px', color: 'var(--text)', marginTop: '3px' },
+  page:        { display: 'flex', flexDirection: 'column', minHeight: 'calc(100vh - 60px)' },
+  header:      { display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', padding: '20px 24px 16px', borderBottom: '1px solid var(--border)', gap: '16px', flexWrap: 'wrap' },
+  pageSuper:   { fontFamily: 'var(--font)', fontSize: '11px', letterSpacing: '0.1em', color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '2px' },
+  pageTitle:   { fontFamily: 'var(--font-display)', fontSize: 'clamp(36px, 5vw, 64px)', fontWeight: 900, color: 'var(--green)', letterSpacing: '-0.01em', lineHeight: 0.9 },
   search:      { background: 'var(--bg)', border: '1.5px solid var(--border)', borderRadius: 'var(--radius-pill)', padding: '7px 16px', fontSize: '12px', fontFamily: 'var(--font)', color: 'var(--text)', outline: 'none', width: '200px' },
   empty:       { padding: '48px 24px', color: 'var(--text-muted)', fontSize: '12px', letterSpacing: '0.06em' },
 

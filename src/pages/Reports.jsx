@@ -208,8 +208,8 @@ export default function Reports() {
     <div style={s.page}>
       <div style={s.header}>
         <div>
-          <div style={s.pageTitle}>WEEKLY REPORT</div>
-          <div style={s.pageSubtitle}>week of {weekOf()}</div>
+          <div style={s.pageSuper}>WEEK OF {weekOf().toUpperCase()}</div>
+          <div style={s.pageTitle}>REPORTS</div>
         </div>
         <div style={s.headerRight}>
           <div style={s.filters}>
@@ -321,11 +321,11 @@ export default function Reports() {
 const s = {
   page:   { display: 'flex', flexDirection: 'column', minHeight: 'calc(100vh - 48px)' },
   header: {
-    display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between',
+    display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between',
     padding: '20px 24px 16px', borderBottom: '1px solid var(--border)', flexWrap: 'wrap', gap: '12px',
   },
-  pageTitle:   { fontSize: '11px', letterSpacing: '0.12em', color: 'var(--text-muted)', fontWeight: 500 },
-  pageSubtitle: { fontSize: '12px', color: 'var(--text)', marginTop: '3px' },
+  pageSuper:   { fontFamily: 'var(--font)', fontSize: '11px', letterSpacing: '0.1em', color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '2px' },
+  pageTitle:   { fontFamily: 'var(--font-display)', fontSize: 'clamp(36px, 5vw, 64px)', fontWeight: 900, color: 'var(--green)', letterSpacing: '-0.01em', lineHeight: 0.9 },
   headerRight: { display: 'flex', alignItems: 'center', gap: '10px' },
   filters:     { display: 'flex', gap: '6px' },
   filterBtn:   { background: '#fff', border: '1.5px solid var(--border)', borderRadius: 'var(--radius-pill)', padding: '7px 16px', fontSize: '11px', letterSpacing: '0.05em', color: 'var(--text-muted)', cursor: 'pointer', fontFamily: 'var(--font)' },

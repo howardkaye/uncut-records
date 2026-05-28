@@ -48,7 +48,10 @@ export default function Releases() {
   return (
     <div style={s.page}>
       <div style={s.header}>
-        <span style={s.pageTitle}>RELEASES</span>
+        <div>
+          <div style={s.pageSuper}>{releases.length} TOTAL</div>
+          <div style={s.pageTitle}>RELEASES</div>
+        </div>
         <div style={s.filters}>
           <button style={{ ...s.filterBtn, ...(filter === 'all' ? s.filterActive : {}) }} onClick={() => setFilter('all')}>
             all
@@ -123,10 +126,11 @@ export default function Releases() {
 const s = {
   page: { display: 'flex', flexDirection: 'column', height: 'calc(100vh - 48px)' },
   header: {
-    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+    display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between',
     padding: '20px 24px 16px', borderBottom: '1px solid var(--border)', flexWrap: 'wrap', gap: '12px',
   },
-  pageTitle: { fontSize: '11px', letterSpacing: '0.12em', color: 'var(--text-muted)', fontWeight: 500 },
+  pageSuper: { fontFamily: 'var(--font)', fontSize: '11px', letterSpacing: '0.1em', color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '2px' },
+  pageTitle: { fontFamily: 'var(--font-display)', fontSize: 'clamp(36px, 5vw, 64px)', fontWeight: 900, color: 'var(--green)', letterSpacing: '-0.01em', lineHeight: 0.9 },
   filters: { display: 'flex', gap: '6px', flexWrap: 'wrap' },
   filterBtn: {
     background: '#fff', border: '1.5px solid var(--border)', borderRadius: 'var(--radius-pill)',
