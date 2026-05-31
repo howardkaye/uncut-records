@@ -37,7 +37,7 @@ export async function seedChecklistForRelease(releaseId) {
     supabase.from('checklist_items').select('id', { count: 'exact', head: true })
       .eq('release_id', releaseId).eq('checklist', 'pre_release'),
     supabase.from('checklist_items').select('id', { count: 'exact', head: true })
-      .eq('release_id', releaseId).eq('checklist', 'release'),
+      .eq('release_id', releaseId).eq('checklist', 'post_release'),
   ])
 
   const toInsert = []
@@ -55,7 +55,7 @@ export async function seedChecklistForRelease(releaseId) {
   if (!relRes.count) {
     RELEASE_ITEMS.forEach((item, i) => toInsert.push({
       release_id: releaseId,
-      checklist: 'release',
+      checklist: 'post_release',
       label: item.label,
       field_type: item.type === 'header' ? 'check' : (item.type || 'check'),
       position: i,

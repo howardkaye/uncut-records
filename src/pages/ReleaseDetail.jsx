@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
-import { useParams, Link } from 'react-router-dom'
+import { useParams, Link, Navigate } from 'react-router-dom'
+import TeaseReportForm from '../components/TeaseReportForm'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import JSZip from 'jszip'
@@ -1173,6 +1174,25 @@ export default function ReleaseDetail() {
   if (loading) return <div style={s.loading}>loading release…</div>
   if (!release) return <div style={s.loading}>release not found</div>
 
+  // ── Content role: simplified form-only view ──
+  if (isContent) {
+    if (release.stage !== 'tease_window') return <Navigate to="/" replace />
+    const track = release.track ?? {}
+    return (
+      <div style={{ minHeight: 'calc(100vh - 60px)', background: '#fff' }}>
+        <div style={{ padding: '16px 24px', borderBottom: '1px solid var(--border)', background: 'var(--bg)' }}>
+          <div style={{ fontSize: '10px', letterSpacing: '0.1em', color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '4px' }}>Tease Window Report</div>
+          <div style={{ fontSize: '14px', fontWeight: 500, color: 'var(--green)' }}>
+            {track.title ?? '—'}{track.artist && track.artist !== 'TBC' ? ` · ${track.artist}` : ''}
+          </div>
+        </div>
+        <div style={{ maxWidth: '680px', margin: '0 auto', padding: '32px 24px' }}>
+          <TeaseReportForm release={release} onSubmitted={() => {}} />
+        </div>
+      </div>
+    )
+  }
+
   const stageIdx = STAGES.findIndex(st => st.key === release.stage)
 
   return (
@@ -1243,10 +1263,19 @@ export default function ReleaseDetail() {
             {release && (
               <>
                 <ChecklistSection releaseId={id} checklist="pre_release" label="Distribution Checklist" isCoordinator={isCoordinator} />
+                {(release.stage === 'tease_window' || release.stage === 'reporting') && (
+                  <ChecklistSection releaseId={id} checklist="post_release" label="Marketing Checklist" isCoordinator={isCoordinator} />
+                )}
                 {release.stage === 'tease_window' && (
                   <>
                     <ReleaseConfirmFlow release={release} onDecision={handleFridayDecision} />
                     <TeaseWindowLog releaseId={id} isCoordinator={isCoordinator || isContent} />
+                    <div style={s.section}>
+                      <div style={s.sectionHeader}>
+                        <span style={s.sectionTitle}>Submit Tease Report</span>
+                      </div>
+                      <TeaseReportForm release={release} onSubmitted={() => {}} />
+                    </div>
                   </>
                 )}
               </>

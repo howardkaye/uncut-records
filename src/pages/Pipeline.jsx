@@ -573,8 +573,6 @@ export default function Pipeline() {
   const [showModal, setShowModal] = useState(false)
   const [confirmMove, setConfirmMove] = useState(null) // { release, newStage }
   const [gateChecked, setGateChecked] = useState({})   // { [index]: bool }
-  const [syncing, setSyncing]         = useState(false)
-  const [syncResult, setSyncResult]   = useState(null)
   const isCoordinator = !profile || profile.role === 'coordinator'
 
   useEffect(() => {
@@ -642,37 +640,6 @@ export default function Pipeline() {
   }
 
   const byStage = stage => releases.filter(r => r.stage === stage)
-
-  async function syncAsana() {
-    setSyncing(true)
-    setSyncResult(null)
-    try {
-      const res = await fetch('/api/sync-asana')
-      const { data, error } = await res.json()
-      if (error) { setSyncResult({ error }); setSyncing(false); return }
-
-      let updated = 0
-      for (const item of data) {
-        const match = releases.find(r =>
-          r.track?.title?.toLowerCase() === item.trackName.toLowerCase()
-        )
-        if (!match) continue
-
-        const updates = {}
-        if (item.teaseDate && item.teaseDate !== match.tease_start_date) updates.tease_start_date = item.teaseDate
-        if (item.releaseDate && item.releaseDate !== match.release_date) updates.release_date = item.releaseDate
-        if (Object.keys(updates).length === 0) continue
-
-        await supabase.from('releases').update(updates).eq('id', match.id)
-        setReleases(prev => prev.map(r => r.id === match.id ? { ...r, ...updates } : r))
-        updated++
-      }
-      setSyncResult({ updated, total: data.length })
-    } catch (err) {
-      setSyncResult({ error: err.message })
-    }
-    setSyncing(false)
-  }
 
   if (loading) return <div style={s.loading}>loading pipeline...</div>
 
@@ -780,17 +747,6 @@ const s = {
     cursor: 'pointer',
     borderRadius: 'var(--radius-pill)',
     fontFamily: 'var(--font)',
-  },
-  syncBtn: {
-    background: 'var(--surface)',
-    color: 'var(--text-muted)',
-    border: '1px solid var(--border)',
-    padding: '7px 14px',
-    fontSize: '12px',
-    letterSpacing: '0.05em',
-    cursor: 'pointer',
-    fontFamily: 'var(--font)',
-    borderRadius: 'var(--radius-pill)',
   },
   board: {
     display: 'flex',

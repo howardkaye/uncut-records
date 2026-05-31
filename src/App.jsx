@@ -4,6 +4,7 @@ import Login from './components/Login'
 import Nav from './components/Nav'
 import ChatBox from './components/ChatBox'
 import Home from './pages/Home'
+import ContentHome from './pages/ContentHome'
 import Pipeline from './pages/Pipeline'
 import TrackPool from './pages/TrackPool'
 import Releases from './pages/Releases'
@@ -29,6 +30,7 @@ function ProtectedRoute({ children, roles }) {
 }
 
 function Shell() {
+  const { profile } = useAuth()
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg)' }}>
       <Nav />
@@ -36,7 +38,7 @@ function Shell() {
         <Routes>
           <Route path="/" element={
             <ProtectedRoute>
-              <Home />
+              {profile?.role === 'content' ? <ContentHome /> : <Home />}
             </ProtectedRoute>
           } />
           <Route path="/pipeline" element={
@@ -55,7 +57,7 @@ function Shell() {
             </ProtectedRoute>
           } />
           <Route path="/releases/:id" element={
-            <ProtectedRoute roles={['coordinator', 'content']}>
+            <ProtectedRoute roles={['coordinator', 'selector', 'content']}>
               <ReleaseDetail />
             </ProtectedRoute>
           } />

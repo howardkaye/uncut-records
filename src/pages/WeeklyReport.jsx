@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 
-const STAGES = ['intake','pre_release','tease_window','released','reporting']
+const STAGES = ['intake','pre_release','tease_window','reporting']
 const STAGE_LABELS = {
   intake: 'Intake',
   pre_release: 'Pre-release',
@@ -79,8 +79,8 @@ export default function WeeklyReport() {
       perfByRelease[p.release_id].push(p)
     })
 
-    // Released / reporting tracks with recent perf
-    const activeReleases = [...pipeline['released'], ...pipeline['reporting']]
+    // Reporting tracks with recent perf
+    const activeReleases = pipeline['reporting']
       .filter(r => perfByRelease[r.id])
 
     // Recent decisions (last 14 days)

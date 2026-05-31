@@ -5,7 +5,7 @@ import { supabase } from '../lib/supabase'
 const TILES = [
   { label: 'Track Pool', to: '/tracks',   query: () => supabase.from('tracks').select('id', { count: 'exact', head: true }).eq('cleared', false) },
   { label: 'Pipeline',   to: '/pipeline', query: () => supabase.from('releases').select('id', { count: 'exact', head: true }).neq('archived', true) },
-  { label: 'Releases',   to: '/releases', query: () => supabase.from('releases').select('id', { count: 'exact', head: true }).in('stage', ['released', 'reporting']) },
+  { label: 'Releases',   to: '/releases', query: () => supabase.from('releases').select('id', { count: 'exact', head: true }).neq('archived', true) },
   { label: 'Reports',    to: '/reports',  query: null },
   { label: 'Guide',      to: '/guide',    query: null },
   { label: 'Vault',      to: '/vault',    query: () => supabase.from('releases').select('id', { count: 'exact', head: true }).eq('archived', true) },

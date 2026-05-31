@@ -6,7 +6,6 @@ const STAGES = [
   { key: 'intake',       label: 'Intake' },
   { key: 'pre_release',  label: 'Pre-release' },
   { key: 'tease_window', label: 'Tease Window' },
-  { key: 'released',     label: 'Released' },
   { key: 'reporting',    label: 'Reporting' },
 ]
 
@@ -14,7 +13,6 @@ const stageStyle = {
   intake:       { color: 'var(--text-muted)', borderColor: 'var(--border)', background: 'var(--surface-2)' },
   pre_release:  { color: '#5a7a4a', borderColor: '#a8c898', background: '#f0f5ec' },
   tease_window: { color: 'var(--bronze)', borderColor: 'var(--bronze-dim)', background: '#f5ede0' },
-  released:     { color: '#3a6a9a', borderColor: '#8ab0d0', background: '#ecf2f8' },
   reporting:    { color: 'var(--text-muted)', borderColor: 'var(--border)', background: 'var(--surface-2)' },
 }
 

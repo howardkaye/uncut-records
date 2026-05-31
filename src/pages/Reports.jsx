@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
+import TeaseReportsView from '../components/TeaseReportsView'
 
 const STAGE_LABEL = {
   intake: 'Intake', pre_release: 'Pre-release',
@@ -148,10 +149,12 @@ function LogDataForm({ releaseId, onSaved }) {
 
 export default function Reports() {
   const navigate = useNavigate()
-  const [releases, setReleases] = useState([])
-  const [loading, setLoading]   = useState(true)
-  const [copied, setCopied]     = useState(false)
-  const [stageFilter, setStageFilter] = useState('all')
+  const [releases,      setReleases]      = useState([])
+  const [teaseReleases, setTeaseReleases] = useState([])
+  const [loading,       setLoading]       = useState(true)
+  const [copied,        setCopied]        = useState(false)
+  const [stageFilter,   setStageFilter]   = useState('all')
+  const [activeTab,     setActiveTab]     = useState('performance') // 'performance' | 'tease'
 
   useEffect(() => { fetchData() }, [])
 
@@ -161,6 +164,15 @@ export default function Reports() {
       .select('*, track:tracks(*)')
       .neq('archived', true)
       .order('release_date', { ascending: false })
+
+    // Fetch releases that have tease reports (tease_window or reporting)
+    supabase
+      .from('releases')
+      .select('*, track:tracks(*)')
+      .in('stage', ['tease_window', 'reporting'])
+      .neq('archived', true)
+      .order('created_at', { ascending: false })
+      .then(({ data }) => setTeaseReleases(data ?? []))
 
     if (!rels) { setLoading(false); return }
 
@@ -192,7 +204,7 @@ export default function Reports() {
     setLoading(false)
   }
 
-  const activeStages = ['tease_window', 'released', 'reporting']
+  const activeStages = ['tease_window', 'reporting']
   const visible = stageFilter === 'active'
     ? releases.filter(r => activeStages.includes(r.stage))
     : releases
@@ -229,15 +241,53 @@ export default function Reports() {
         </div>
       </div>
 
-      {loading ? (
-        <div style={s.empty}>generating report...</div>
-      ) : visible.length === 0 ? (
-        <div style={s.empty}>
-          no {stageFilter === 'active' ? 'live' : ''} releases —{' '}
-          <Link to="/pipeline" style={{ color: 'var(--bronze)' }}>go to pipeline</Link>
+      {/* Tab bar */}
+      <div style={s.tabBar}>
+        <button
+          style={{ ...s.tabBtn, ...(activeTab === 'performance' ? s.tabActive : {}) }}
+          onClick={() => setActiveTab('performance')}>
+          Performance
+        </button>
+        <button
+          style={{ ...s.tabBtn, ...(activeTab === 'tease' ? s.tabActive : {}) }}
+          onClick={() => setActiveTab('tease')}>
+          Tease Reports {teaseReleases.length > 0 && `(${teaseReleases.length})`}
+        </button>
+      </div>
+
+      {/* Tease Reports tab */}
+      {activeTab === 'tease' && (
+        <div style={s.teaseSection}>
+          {teaseReleases.length === 0 ? (
+            <div style={s.empty}>No releases currently in tease window or reporting.</div>
+          ) : teaseReleases.map(r => (
+            <div key={r.id} style={s.teaseBlock}>
+              <div style={s.teaseBlockHeader}>
+                <div>
+                  <div style={s.teaseTrackTitle}>{r.track?.title ?? '—'}</div>
+                  <div style={s.teaseTrackArtist}>{r.track?.artist ?? '—'}</div>
+                </div>
+                <span style={{ ...s.stagePill, background: r.stage === 'tease_window' ? 'var(--pink)' : 'var(--surface-2)' }}>
+                  {r.stage === 'tease_window' ? 'In Market' : 'Reporting'}
+                </span>
+              </div>
+              <TeaseReportsView release={r} />
+            </div>
+          ))}
         </div>
-      ) : (
-        <div style={s.cards}>
+      )}
+
+      {/* Performance tab */}
+      {activeTab === 'performance' && (
+        loading ? (
+          <div style={s.empty}>generating report...</div>
+        ) : visible.length === 0 ? (
+          <div style={s.empty}>
+            no {stageFilter === 'active' ? 'live' : ''} releases —{' '}
+            <Link to="/pipeline" style={{ color: 'var(--bronze)' }}>go to pipeline</Link>
+          </div>
+        ) : (
+          <div style={s.cards}>
           {visible.map(r => {
             const days = daysSince(r.release_date)
             const preProgress  = r._preTotal  ? Math.round((r._preDone  / r._preTotal)  * 100) : 0
@@ -312,7 +362,8 @@ export default function Reports() {
               </div>
             )
           })}
-        </div>
+          </div>
+        )
       )}
     </div>
   )
@@ -320,6 +371,16 @@ export default function Reports() {
 
 const s = {
   page:   { display: 'flex', flexDirection: 'column', minHeight: 'calc(100vh - 48px)' },
+
+  tabBar:   { display: 'flex', borderBottom: '1px solid var(--border)', padding: '0 24px', background: '#fff' },
+  tabBtn:   { background: 'none', border: 'none', borderBottom: '2px solid transparent', padding: '11px 18px', fontSize: '12px', letterSpacing: '0.05em', color: 'var(--text-muted)', cursor: 'pointer', marginBottom: '-1px', fontFamily: 'var(--font)' },
+  tabActive: { color: 'var(--green)', borderBottomColor: 'var(--green)', fontWeight: 500 },
+
+  teaseSection:    { display: 'flex', flexDirection: 'column', gap: '32px', padding: '24px' },
+  teaseBlock:      { display: 'flex', flexDirection: 'column', gap: '20px' },
+  teaseBlockHeader:{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', paddingBottom: '12px', borderBottom: '1.5px solid var(--border)' },
+  teaseTrackTitle: { fontSize: '16px', fontWeight: 500, color: 'var(--green)', marginBottom: '2px' },
+  teaseTrackArtist:{ fontSize: '12px', color: 'var(--text-muted)' },
   header: {
     display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between',
     padding: '20px 24px 16px', borderBottom: '1px solid var(--border)', flexWrap: 'wrap', gap: '12px',
