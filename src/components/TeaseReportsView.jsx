@@ -1,5 +1,26 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase'
+
+async function downloadAsPDF(element, filename) {
+  const { default: html2canvas } = await import('html2canvas')
+  const { default: jsPDF }       = await import('jspdf')
+  await document.fonts.ready
+  const canvas = await html2canvas(element, { scale: 2, useCORS: true, logging: false, backgroundColor: '#ffffff' })
+  const img    = canvas.toDataURL('image/png')
+  const pdf    = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
+  const pw     = pdf.internal.pageSize.getWidth()
+  const ph     = pdf.internal.pageSize.getHeight()
+  const ih     = (canvas.height * pw) / canvas.width
+  let left     = ih
+  pdf.addImage(img, 'PNG', 0, 0, pw, ih)
+  left -= ph
+  while (left > 0) {
+    pdf.addPage()
+    pdf.addImage(img, 'PNG', 0, left - ih, pw, ih)
+    left -= ph
+  }
+  pdf.save(filename)
+}
 
 // ── Calculations ─────────────────────────────────────────────────────────────
 
@@ -122,8 +143,10 @@ function exportCSV(release, reports, m) {
 // ── Component ────────────────────────────────────────────────────────────────
 
 export default function TeaseReportsView({ release }) {
-  const [reports, setReports] = useState([])
-  const [loading, setLoading] = useState(true)
+  const [reports,   setReports]   = useState([])
+  const [loading,   setLoading]   = useState(true)
+  const [exporting, setExporting] = useState(false)
+  const reportRef = useRef(null)
 
   useEffect(() => {
     supabase
@@ -145,22 +168,35 @@ export default function TeaseReportsView({ release }) {
 
   const m = calcMetrics(reports)
 
+  async function handlePDF() {
+    setExporting(true)
+    await downloadAsPDF(reportRef.current, `${release.track?.title ?? 'Release'} — Tease Report.pdf`)
+    setExporting(false)
+  }
+
   return (
     <div style={s.wrapper}>
 
-      {/* Toolbar */}
-      <div style={s.toolbar} className="no-print">
+      {/* Toolbar — excluded from PDF capture */}
+      <div style={s.toolbar}>
         <span style={s.reportCount}>{reports.length} report{reports.length !== 1 ? 's' : ''} submitted</span>
         <div style={{ display: 'flex', gap: '8px' }}>
           <button style={s.exportBtn} onClick={() => exportCSV(release, reports, m)}>↓ CSV</button>
-          <button style={s.exportBtn} onClick={() => window.print()}>↓ PDF</button>
+          <button style={{ ...s.exportBtn, opacity: exporting ? 0.6 : 1 }} onClick={handlePDF} disabled={exporting}>
+            {exporting ? 'generating…' : '↓ PDF'}
+          </button>
         </div>
       </div>
 
-      {/* Print-only header */}
-      <div className="print-only" style={s.printHeader}>
-        <div style={s.printWordmark}>UNCUT RECORDS</div>
-        <div style={s.printTitle}>{release.track?.title ?? '—'} — Tease Window Report</div>
+      {/* Everything below is captured into the PDF */}
+      <div ref={reportRef} style={{ background: '#fff', padding: '20px 0' }}>
+
+      {/* PDF header */}
+      <div style={s.printHeader}>
+        <div>
+          <div style={s.printWordmark}>UNCUT RECORDS</div>
+          <div style={s.printTitle}>{release.track?.title ?? '—'} — Tease Window Report</div>
+        </div>
         <div style={s.printDate}>Generated {new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</div>
       </div>
 
@@ -269,15 +305,7 @@ export default function TeaseReportsView({ release }) {
         })}
       </div>
 
-      <style>{`
-        @media print {
-          .no-print { display: none !important; }
-          .print-only { display: block !important; }
-          body { background: white !important; }
-          @page { margin: 20mm; size: A4; }
-        }
-        .print-only { display: none; }
-      `}</style>
+      </div> {/* end PDF capture div */}
     </div>
   )
 }
@@ -290,10 +318,10 @@ const s = {
   reportCount: { fontSize: '12px', color: 'var(--text-muted)' },
   exportBtn:   { background: '#fff', border: '1.5px solid var(--border)', borderRadius: 'var(--radius-pill)', padding: '6px 16px', fontSize: '11px', letterSpacing: '0.05em', cursor: 'pointer', color: 'var(--green)', fontFamily: 'var(--font)' },
 
-  printHeader:  { marginBottom: '24px' },
-  printWordmark:{ fontSize: '13px', fontWeight: 600, letterSpacing: '0.12em', color: 'var(--green)', marginBottom: '6px' },
-  printTitle:   { fontSize: '20px', fontWeight: 700, color: 'var(--text)', marginBottom: '4px' },
-  printDate:    { fontSize: '11px', color: 'var(--text-muted)' },
+  printHeader:  { display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '20px', paddingBottom: '16px', borderBottom: '1.5px solid var(--border)' },
+  printWordmark:{ fontSize: '11px', fontWeight: 600, letterSpacing: '0.14em', color: 'var(--green)', marginBottom: '6px', textTransform: 'uppercase', fontFamily: 'var(--font)' },
+  printTitle:   { fontSize: '20px', fontWeight: 700, color: 'var(--green)', fontFamily: 'var(--font-display)', fontVariationSettings: '"YEAR" 2050' },
+  printDate:    { fontSize: '11px', color: 'var(--text-muted)', textAlign: 'right', paddingTop: '4px' },
 
   statRow:   { display: 'flex', gap: '12px' },
   statCard:  { flex: 1, background: 'var(--surface)', border: '1.5px solid var(--border)', padding: '16px 18px' },

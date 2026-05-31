@@ -99,8 +99,30 @@ export default function WeeklyReport() {
     setLoading(false)
   }
 
-  function handlePrint() {
-    window.print()
+  const [exporting, setExporting] = useState(false)
+
+  async function handlePrint() {
+    setExporting(true)
+    const { default: html2canvas } = await import('html2canvas')
+    const { default: jsPDF }       = await import('jspdf')
+    await document.fonts.ready
+    const el     = reportRef.current
+    const canvas = await html2canvas(el, { scale: 2, useCORS: true, logging: false, backgroundColor: '#ffffff' })
+    const img    = canvas.toDataURL('image/png')
+    const pdf    = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
+    const pw     = pdf.internal.pageSize.getWidth()
+    const ph     = pdf.internal.pageSize.getHeight()
+    const ih     = (canvas.height * pw) / canvas.width
+    let left     = ih
+    pdf.addImage(img, 'PNG', 0, 0, pw, ih)
+    left -= ph
+    while (left > 0) {
+      pdf.addPage()
+      pdf.addImage(img, 'PNG', 0, left - ih, pw, ih)
+      left -= ph
+    }
+    pdf.save(`Uncut Records — Weekly Report.pdf`)
+    setExporting(false)
   }
 
   if (loading) return <div style={s.loading}>building report...</div>
@@ -113,7 +135,9 @@ export default function WeeklyReport() {
       {/* Print button — hidden when printing */}
       <div style={s.toolbar} className="no-print">
         <span style={s.toolbarLabel}>Weekly Report</span>
-        <button style={s.printBtn} onClick={handlePrint}>↓ Download PDF</button>
+        <button style={{ ...s.printBtn, opacity: exporting ? 0.6 : 1 }} onClick={handlePrint} disabled={exporting}>
+          {exporting ? 'generating…' : '↓ Download PDF'}
+        </button>
       </div>
 
       {/* Report content */}
