@@ -70,6 +70,7 @@ const s = {
     letterSpacing: '-0.02em',
     textTransform: 'uppercase',
     fontWeight: 900,
+    fontVariationSettings: '"YEAR" 2050',
   },
   wordmarkSub: {
     fontFamily: 'var(--font)',

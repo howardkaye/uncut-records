@@ -77,7 +77,7 @@ export default function ContentHome() {
 const s = {
   page:      { minHeight: 'calc(100vh - 60px)', background: '#fff', padding: '48px 24px', display: 'flex', flexDirection: 'column', alignItems: 'center' },
   hero:      { textAlign: 'center', marginBottom: '40px' },
-  wordmark:  { fontFamily: 'var(--font-display)', fontSize: 'clamp(64px, 14vw, 160px)', color: 'var(--green)', lineHeight: 0.9, letterSpacing: '-0.02em', fontWeight: 900, textTransform: 'uppercase' },
+  wordmark:  { fontFamily: 'var(--font-display)', fontSize: 'clamp(64px, 14vw, 160px)', color: 'var(--green)', lineHeight: 0.9, letterSpacing: '-0.02em', fontWeight: 900, textTransform: 'uppercase', fontVariationSettings: '"YEAR" 2050' },
   heroSub:   { fontFamily: 'var(--font)', fontSize: '13px', color: 'var(--text-muted)', marginTop: '10px', letterSpacing: '0.06em' },
   loading:   { fontSize: '12px', color: 'var(--text-muted)', letterSpacing: '0.06em', marginTop: '40px' },
   empty:     { fontSize: '13px', color: 'var(--text-muted)', textAlign: 'center', maxWidth: '360px', marginTop: '40px', lineHeight: 1.6 },

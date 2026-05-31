@@ -74,6 +74,7 @@ const styles = {
     color: 'var(--green)',
     letterSpacing: '0.02em',
     lineHeight: 1,
+    fontVariationSettings: '"YEAR" 2050',
   },
   pageLabel: {
     fontFamily: 'var(--font)',

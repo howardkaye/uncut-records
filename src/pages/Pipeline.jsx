@@ -730,7 +730,7 @@ const s = {
     marginBottom: '2px',
   },
   pageTitle: {
-    fontFamily: 'var(--font-display)',
+    fontFamily: 'var(--font-display)', fontVariationSettings: '"YEAR" 2050',
     fontSize: 'clamp(36px, 5vw, 64px)',
     fontWeight: 900,
     color: 'var(--green)',

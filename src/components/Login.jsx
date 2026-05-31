@@ -120,6 +120,7 @@ const styles = {
     color: 'var(--green)',
     marginBottom: '4px',
     lineHeight: 1,
+    fontVariationSettings: '"YEAR" 2050',
   },
   sub: {
     fontSize: '11px',
