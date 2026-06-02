@@ -203,7 +203,7 @@ function TrackFormModal({ onClose, onSaved, initialTrack }) {
 
   async function handleSubmit(e) {
     e.preventDefault()
-    if (!form.title.trim() || !form.writers.trim()) return
+    if (!form.title.trim()) return
     setSaving(true); setError(null)
     try {
       let file_url         = initialTrack?.file_url         ?? null
@@ -306,8 +306,8 @@ function TrackFormModal({ onClose, onSaved, initialTrack }) {
               <input style={m.input} placeholder="Optional" value={form.featured_artist} onChange={e => set('featured_artist', e.target.value)} />
             </div>
             <div style={{ gridColumn: '1/-1' }}>
-              <div style={m.label}>Writers (full legal names) *</div>
-              <input style={m.input} placeholder="e.g. John Smith, Jane Doe" value={form.writers} onChange={e => set('writers', e.target.value)} required />
+              <div style={m.label}>Writers (full legal names)</div>
+              <input style={m.input} placeholder="e.g. John Smith, Jane Doe" value={form.writers} onChange={e => set('writers', e.target.value)} />
             </div>
             <div style={{ gridColumn: '1/-1' }}>
               <div style={m.label}>Splits</div>
