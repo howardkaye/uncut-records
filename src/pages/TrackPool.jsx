@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext'
 import WaveSurfer from 'wavesurfer.js'
 import MusicTempo from 'music-tempo'
 import { seedChecklistForRelease } from '../lib/seedChecklist'
+import ArtworkThumb from '../components/ArtworkThumb'
 
 // ─── BPM detection ───────────────────────────────────────────────────────────
 async function detectBPM(file) {
@@ -521,6 +522,7 @@ export default function TrackPool() {
         {/* Header */}
         <div style={s.thead}>
           <div style={{ ...s.th, width: 52 }} />
+          <div style={{ ...s.th, width: 48 }} />
           <div style={{ ...s.th, flex: '1 1 130px' }}>ARTIST</div>
           <div style={{ ...s.th, flex: '1.5 1 160px' }}>TITLE</div>
           <div style={{ ...s.th, width: 70, textAlign: 'center' }}>BPM</div>
@@ -556,6 +558,11 @@ export default function TrackPool() {
                   ) : (
                     <div style={{ ...s.playBtn, opacity: 0.2, cursor: 'default' }}>▶</div>
                   )}
+                </div>
+
+                {/* Artwork thumbnail */}
+                <div style={{ ...s.td, width: 48, justifyContent: 'center' }} onClick={e => e.stopPropagation()}>
+                  <ArtworkThumb path={track.releases?.[0]?.artwork_url} size={36} radius={4} />
                 </div>
 
                 <div style={{ ...s.td, flex: '1 1 130px', fontWeight: 600 }}>{track.artist ?? '—'}</div>

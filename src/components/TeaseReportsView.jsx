@@ -54,17 +54,7 @@ function calcMetrics(reports) {
   const top5Views = [...allVideos].sort((a, b) => (b.views || 0) - (a.views || 0)).slice(0, 5)
   const top5Likes = [...allVideos].sort((a, b) => (b.likes || 0) - (a.likes || 0)).slice(0, 5)
 
-  const themeMap = {}
-  allVideos.filter(v => v.content_theme).forEach(v => {
-    const r = v.views > 0 ? v.likes / v.views * 100 : 0
-    if (!themeMap[v.content_theme]) themeMap[v.content_theme] = []
-    themeMap[v.content_theme].push(r)
-  })
-  const themes = Object.entries(themeMap)
-    .map(([theme, ratios]) => ({ theme, avg: ratios.reduce((a, b) => a + b, 0) / ratios.length, count: ratios.length }))
-    .sort((a, b) => b.avg - a.avg)
-
-  return { accMap, combined, top5Views, top5Likes, themes }
+  return { accMap, combined, top5Views, top5Likes }
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -109,26 +99,19 @@ function exportCSV(release, reports, m) {
   }
 
   row(['TOP 5 BY VIEWS'])
-  row(['Account', 'Views', 'Likes', 'Ratio', 'Theme', 'URL'])
+  row(['Account', 'Views', 'Likes', 'Ratio', 'URL'])
   m.top5Views.forEach(v => {
     const r = v.views > 0 ? `${(v.likes / v.views * 100).toFixed(1)}%` : '—'
-    row([v.account_name, v.views, v.likes, r, v.content_theme ?? '', v.video_url ?? ''])
+    row([v.account_name, v.views, v.likes, r, v.video_url ?? ''])
   })
   row([])
 
   row(['TOP 5 BY LIKES'])
-  row(['Account', 'Views', 'Likes', 'Ratio', 'Theme', 'URL'])
+  row(['Account', 'Views', 'Likes', 'Ratio', 'URL'])
   m.top5Likes.forEach(v => {
     const r = v.views > 0 ? `${(v.likes / v.views * 100).toFixed(1)}%` : '—'
-    row([v.account_name, v.views, v.likes, r, v.content_theme ?? '', v.video_url ?? ''])
+    row([v.account_name, v.views, v.likes, r, v.video_url ?? ''])
   })
-
-  if (m.themes.length > 0) {
-    row([])
-    row(['CONTENT THEME ANALYSIS'])
-    row(['Theme', 'Avg Ratio', 'Videos'])
-    m.themes.forEach(t => row([t.theme, fmtRatio(t.avg), t.count]))
-  }
 
   const csv  = rows.join('\n')
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
@@ -155,7 +138,7 @@ export default function TeaseReportsView({ release }) {
         report_id, period_start, period_end, created_at,
         accounts:tease_report_accounts(
           account_id, account_name,
-          videos:tease_report_videos(video_id, views, likes, content_theme, video_url, notes)
+          videos:tease_report_videos(video_id, views, likes, video_url, notes)
         )
       `)
       .eq('release_id', release.id)
@@ -259,7 +242,6 @@ export default function TeaseReportsView({ release }) {
                           : <>{fmt(v.likes)} likes · {fmt(v.views)} views</>}
                         <span style={s.vidRatio}>{ratio}</span>
                       </div>
-                      {v.content_theme && <div style={s.vidTheme}>{v.content_theme}</div>}
                       <div style={s.vidAcc}>{v.account_name}</div>
                       {v.video_url && (
                         <a href={v.video_url} target="_blank" rel="noreferrer" style={s.vidLink}>↗ view</a>
@@ -272,23 +254,6 @@ export default function TeaseReportsView({ release }) {
           </div>
         ))}
       </div>
-
-      {/* Theme analysis */}
-      {m.themes.length > 0 && (
-        <div style={s.section}>
-          <div style={s.sectionTitle}>Content Theme Analysis</div>
-          <div style={s.themeGrid}>
-            {m.themes.map((t, i) => (
-              <div key={t.theme} style={{ ...s.themeCard, ...(i === 0 ? s.themeCardBest : {}) }}>
-                {i === 0 && <div style={s.bestBadge}>best</div>}
-                <div style={s.themeName}>{t.theme}</div>
-                <div style={s.themeRatio}>{fmtRatio(t.avg)}</div>
-                <div style={s.themeCount}>avg · {t.count} video{t.count !== 1 ? 's' : ''}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
 
       {/* Submission history */}
       <div style={s.section}>

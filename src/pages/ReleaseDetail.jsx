@@ -1,11 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useParams, Link, Navigate } from 'react-router-dom'
-import TeaseReportForm from '../components/TeaseReportForm'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
-import JSZip from 'jszip'
-import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType } from 'docx'
-import { DISTRIBUTION_ITEMS, RELEASE_ITEMS, seedChecklistForRelease } from '../lib/seedChecklist'
+import { DISTRIBUTION_ITEMS, seedChecklistForRelease } from '../lib/seedChecklist'
 
 const STAGES = [
   { key: 'intake',       label: 'Selected' },
@@ -22,9 +19,9 @@ const GENRES = [
   'Folk / Singer-Songwriter', 'N/A',
 ]
 
-// Lookup placeholder / accept / options by label (DISTRIBUTION_ITEMS + RELEASE_ITEMS imported from seedChecklist)
+// Lookup placeholder / accept / options by label
 const ITEM_META = {}
-;[...DISTRIBUTION_ITEMS, ...RELEASE_ITEMS].forEach(item => {
+;DISTRIBUTION_ITEMS.forEach(item => {
   if (item.placeholder || item.accept || item.options) {
     ITEM_META[item.label] = { placeholder: item.placeholder, accept: item.accept, options: item.options }
   }
@@ -178,7 +175,7 @@ function ChecklistSection({ releaseId, checklist, label, isCoordinator }) {
       const { data: inserted, error: seedErr } = await supabase
         .from('checklist_items')
         .insert(
-          (checklist === 'pre_release' ? DISTRIBUTION_ITEMS : RELEASE_ITEMS).map((item, i) => ({
+          DISTRIBUTION_ITEMS.map((item, i) => ({
             release_id: releaseId,
             checklist,
             label: item.label,
@@ -883,7 +880,94 @@ function PerformanceTab({ releaseId, isCoordinator }) {
 }
 
 // ─────────────────────────────────────────────
-// Content Creator Brief (shown in Preparing stage)
+// Briefing Buttons — Content Creator + Ads Team
+// ─────────────────────────────────────────────
+function BriefingButtons({ release }) {
+  const track = release.track ?? {}
+  const [ccEmail,     setCcEmail]     = useState('')
+  const [ccSent,      setCcSent]      = useState(false)
+  const [adsSending,  setAdsSending]  = useState(false)
+
+  async function handleCC() {
+    if (!ccEmail.trim()) return
+    let trackLine = ''
+    if (track.file_url) {
+      const { data } = await supabase.storage.from('tracks').createSignedUrl(track.file_url, 60 * 60 * 24 * 7)
+      if (data?.signedUrl) trackLine = `\nTrack (7-day link): ${data.signedUrl}`
+    }
+    let artworkLine = ''
+    if (release.artwork_url) {
+      const { data } = await supabase.storage.from('tracks').createSignedUrl(release.artwork_url, 60 * 60 * 24 * 7)
+      if (data?.signedUrl) artworkLine = `\nArtwork (7-day link): ${data.signedUrl}`
+    }
+    const subject = encodeURIComponent(`Brief: ${track.title ?? 'Track'}${track.artist && track.artist !== 'TBC' ? ` — ${track.artist}` : ''}`)
+    const body = encodeURIComponent(
+      `Hi,\n\nDetails for the upcoming release:\n\n` +
+      `Track: ${track.title ?? '—'}\n` +
+      `Artist: ${track.artist && track.artist !== 'TBC' ? track.artist : '—'}\n` +
+      (track.bpm ? `BPM: ${track.bpm}\n` : '') +
+      (track.track_key ? `Key: ${track.track_key}\n` : '') +
+      `${trackLine}${artworkLine}\n\nUncut Records`
+    )
+    window.location.href = `mailto:${encodeURIComponent(ccEmail.trim())}?subject=${subject}&body=${body}`
+    setCcSent(true)
+  }
+
+  async function handleAds() {
+    setAdsSending(true)
+    let artworkLine = ''
+    if (release.artwork_url) {
+      const { data } = await supabase.storage.from('tracks').createSignedUrl(release.artwork_url, 60 * 60 * 24 * 7)
+      if (data?.signedUrl) artworkLine = `\nArtwork: ${data.signedUrl}`
+    }
+    const msg = `*${track.title ?? 'Track'}*${track.artist && track.artist !== 'TBC' ? ` by ${track.artist}` : ''}${artworkLine}\n\nPlease use the artwork above for the ads campaign.`
+    window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank')
+    setAdsSending(false)
+  }
+
+  return (
+    <div style={s.section}>
+      <div style={s.sectionHeader}>
+        <span style={s.sectionTitle}>Send Brief</span>
+      </div>
+      <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
+        {/* Content Creator */}
+        <div style={{ flex: 1, minWidth: '220px' }}>
+          <div style={{ fontSize: '10px', letterSpacing: '0.08em', color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '8px' }}>Content Creator</div>
+          <div style={{ display: 'flex', gap: '6px' }}>
+            <input
+              type="email"
+              placeholder="email address…"
+              value={ccEmail}
+              onChange={e => { setCcEmail(e.target.value); setCcSent(false) }}
+              onKeyDown={e => e.key === 'Enter' && handleCC()}
+              style={{ flex: 1, background: 'var(--bg)', border: '1.5px solid var(--border)', padding: '8px 10px', fontSize: '12px', fontFamily: 'var(--font)', color: 'var(--text)', outline: 'none' }}
+            />
+            <button
+              style={{ background: ccSent ? 'var(--surface-2)' : 'var(--pink)', color: ccSent ? 'var(--text-muted)' : 'var(--green)', border: 'none', borderRadius: 'var(--radius-pill)', padding: '8px 14px', fontSize: '11px', fontFamily: 'var(--font)', cursor: ccEmail.trim() ? 'pointer' : 'not-allowed', opacity: ccEmail.trim() ? 1 : 0.5, letterSpacing: '0.04em', flexShrink: 0 }}
+              disabled={!ccEmail.trim()}
+              onClick={handleCC}>
+              {ccSent ? '✓ sent' : '↗ send'}
+            </button>
+          </div>
+        </div>
+        {/* Ads Team */}
+        <div style={{ flexShrink: 0 }}>
+          <div style={{ fontSize: '10px', letterSpacing: '0.08em', color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '8px' }}>Ads Team</div>
+          <button
+            style={{ background: 'var(--pink)', color: 'var(--green)', border: 'none', borderRadius: 'var(--radius-pill)', padding: '9px 18px', fontSize: '11px', fontFamily: 'var(--font)', cursor: 'pointer', letterSpacing: '0.04em', opacity: adsSending ? 0.6 : 1 }}
+            onClick={handleAds}
+            disabled={adsSending}>
+            {adsSending ? '…' : '↗ WhatsApp brief'}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ─────────────────────────────────────────────
+// (Legacy shell — kept for reference, not rendered)
 // ─────────────────────────────────────────────
 function ContentCreatorBrief({ release }) {
   const [email, setEmail]   = useState('')
@@ -1193,63 +1277,55 @@ export default function ReleaseDetail() {
     )
   }
 
-  const stageIdx = STAGES.findIndex(st => st.key === release.stage)
+  const stageIdx   = STAGES.findIndex(st => st.key === release.stage)
+  const stageLabel = STAGES.find(st => st.key === release.stage)?.label ?? ''
+  const track      = release.track ?? {}
 
   return (
     <div style={s.page}>
-      {/* Top bar */}
-      <div style={s.topBar}>
-        <Link to="/releases" style={s.back}>← releases</Link>
-        <div style={s.topBarRight}>
-          {isCoordinator && stageIdx > 0 && (
-            <button style={s.stageBtn} onClick={() => moveStage(STAGES[stageIdx - 1].key)}>
-              ← {STAGES[stageIdx - 1].label}
-            </button>
+
+      {/* ── Page header ── */}
+      <div style={s.header}>
+        <div style={s.headerLeft}>
+          <Link to="/pipeline" style={s.back}>← pipeline</Link>
+          <div style={s.title}>{track.title ?? '—'}</div>
+          {track.artist && track.artist !== 'TBC' && (
+            <div style={s.artist}>{track.artist}</div>
           )}
-          {isCoordinator && stageIdx < STAGES.length - 1 && release.stage !== 'tease_window' && (
-            <button style={{ ...s.stageBtn, ...s.stageBtnAdvance }}
-              onClick={() => {
-                if (release.stage === 'intake') { setShowPrepareConfirm(true) }
-                else { moveStage(STAGES[stageIdx + 1].key) }
-              }}>
-              Move to {STAGES[stageIdx + 1].label} →
-            </button>
-          )}
+          <span style={s.stagePill}>{stageLabel}</span>
         </div>
+        {isCoordinator && (
+          <div style={s.headerActions}>
+            {stageIdx > 0 && (
+              <button style={s.retreatBtn} onClick={() => moveStage(STAGES[stageIdx - 1].key)}>
+                ← {STAGES[stageIdx - 1].label}
+              </button>
+            )}
+            {stageIdx < STAGES.length - 1 && (
+              <button style={s.advanceBtn}
+                onClick={() => release.stage === 'intake' ? setShowPrepareConfirm(true) : moveStage(STAGES[stageIdx + 1].key)}>
+                {STAGES[stageIdx + 1].label} →
+              </button>
+            )}
+          </div>
+        )}
       </div>
 
-      {/* Stage timeline */}
-      <div style={s.timeline}>
-        {STAGES.map((st, i) => {
-          const isPast = i < stageIdx; const isCurrent = i === stageIdx
-          return (
-            <div key={st.key} style={s.timelineStep}>
-              <div style={{ ...s.timelineDot, ...(isCurrent ? s.dotCurrent : isPast ? s.dotPast : s.dotFuture) }} />
-              <span style={{ ...s.timelineLabel, color: isCurrent ? 'var(--bronze)' : isPast ? 'var(--text)' : 'var(--text-muted)', fontWeight: isCurrent ? 500 : 400 }}>
-                {st.label}
-              </span>
-              {i < STAGES.length - 1 && <div style={{ ...s.timelineLine, background: isPast ? 'var(--bronze-dim)' : 'var(--border)' }} />}
-            </div>
-          )
-        })}
-      </div>
-
+      {/* Prepare confirm modal */}
       {showPrepareConfirm && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(42,37,32,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 300 }}
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(26,77,46,0.18)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 300 }}
           onClick={e => e.target === e.currentTarget && setShowPrepareConfirm(false)}>
-          <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', padding: '32px', maxWidth: '380px', width: '90%' }}>
-            <div style={{ fontSize: '13px', fontWeight: 500, marginBottom: '8px' }}>Start preparing this release?</div>
-            <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '20px', lineHeight: 1.6 }}>
-              Moving <span style={{ color: 'var(--text)', fontWeight: 500 }}>{release.track?.title ?? 'this track'}</span> to <strong>Preparing</strong> means active work begins — distribution checklist, artwork, rights. Ready to go?
+          <div style={{ background: '#fff', border: '1.5px solid var(--border)', padding: '32px', maxWidth: '380px', width: '90%' }}>
+            <div style={{ fontSize: '14px', fontWeight: 500, color: 'var(--green)', marginBottom: '8px' }}>Start preparing?</div>
+            <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '24px', lineHeight: 1.6 }}>
+              Moving <strong style={{ color: 'var(--text)' }}>{track.title ?? 'this track'}</strong> to Preparing. The distribution checklist will open.
             </div>
             <div style={{ display: 'flex', gap: '8px' }}>
-              <button
-                style={{ flex: 1, background: 'var(--bronze)', color: '#fff', border: 'none', padding: '10px', fontSize: '12px', cursor: 'pointer', fontFamily: 'var(--font)', letterSpacing: '0.04em' }}
+              <button style={{ flex: 1, background: 'var(--pink)', color: 'var(--green)', border: 'none', borderRadius: 'var(--radius-pill)', padding: '11px', fontSize: '12px', cursor: 'pointer', fontFamily: 'var(--font)', letterSpacing: '0.04em' }}
                 onClick={() => { moveStage('pre_release'); setShowPrepareConfirm(false) }}>
                 Yes, start preparing
               </button>
-              <button
-                style={{ flex: 1, background: 'var(--surface-2)', border: '1px solid var(--border)', padding: '10px', fontSize: '12px', cursor: 'pointer', color: 'var(--text-muted)', fontFamily: 'var(--font)' }}
+              <button style={{ background: 'var(--surface-2)', border: '1.5px solid var(--border)', borderRadius: 'var(--radius-pill)', padding: '11px 16px', fontSize: '12px', cursor: 'pointer', color: 'var(--text-muted)', fontFamily: 'var(--font)' }}
                 onClick={() => setShowPrepareConfirm(false)}>
                 Cancel
               </button>
@@ -1259,28 +1335,12 @@ export default function ReleaseDetail() {
       )}
 
       <div style={s.body}>
-          <div style={s.main}>
-            {release && (
-              <>
-                <ChecklistSection releaseId={id} checklist="pre_release" label="Distribution Checklist" isCoordinator={isCoordinator} />
-                {(release.stage === 'tease_window' || release.stage === 'reporting') && (
-                  <ChecklistSection releaseId={id} checklist="post_release" label="Marketing Checklist" isCoordinator={isCoordinator} />
-                )}
-                {release.stage === 'tease_window' && (
-                  <>
-                    <ReleaseConfirmFlow release={release} onDecision={handleFridayDecision} />
-                    <TeaseWindowLog releaseId={id} isCoordinator={isCoordinator || isContent} />
-                    <div style={s.section}>
-                      <div style={s.sectionHeader}>
-                        <span style={s.sectionTitle}>Submit Tease Report</span>
-                      </div>
-                      <TeaseReportForm release={release} onSubmitted={() => {}} />
-                    </div>
-                  </>
-                )}
-              </>
-            )}
-          </div>
+        <div style={s.main}>
+          <ChecklistSection releaseId={id} checklist="pre_release" label="Distribution Checklist" isCoordinator={isCoordinator} />
+          {isCoordinator && (release.stage === 'pre_release' || release.stage === 'tease_window') && (
+            <BriefingButtons release={release} />
+          )}
+        </div>
 
           {/* Sidebar */}
           <div style={s.sidebar}>
@@ -1379,27 +1439,23 @@ export default function ReleaseDetail() {
 // Styles
 // ─────────────────────────────────────────────
 const s = {
-  page:    { display: 'flex', flexDirection: 'column', minHeight: 'calc(100vh - 48px)' },
+  page:    { display: 'flex', flexDirection: 'column', minHeight: 'calc(100vh - 60px)', background: '#fff' },
   loading: { padding: '48px 24px', color: 'var(--text-muted)', fontSize: '12px' },
-  topBar:  { display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 24px', borderBottom: '1px solid var(--border)', background: 'var(--surface)' },
-  back:    { fontSize: '11px', color: 'var(--text-muted)', letterSpacing: '0.06em' },
-  topBarRight: { display: 'flex', gap: '8px', alignItems: 'center' },
-  stageBtn: { background: 'var(--surface-2)', border: '1px solid var(--border)', padding: '6px 12px', fontSize: '11px', letterSpacing: '0.05em', cursor: 'pointer', color: 'var(--text-muted)', fontFamily: 'var(--font)' },
-  stageBtnAdvance: { background: 'var(--bronze)', color: '#fff', borderColor: 'var(--bronze)' },
-  timeline: { display: 'flex', alignItems: 'center', padding: '16px 24px', borderBottom: '1px solid var(--border)', background: 'var(--bg)', overflowX: 'auto' },
-  timelineStep:  { display: 'flex', alignItems: 'center', flexShrink: 0 },
-  timelineDot:   { width: '8px', height: '8px', borderRadius: '50%', flexShrink: 0 },
-  dotCurrent:    { background: 'var(--bronze)', boxShadow: '0 0 0 3px #f5ede0' },
-  dotPast:       { background: 'var(--bronze-dim)' },
-  dotFuture:     { background: 'var(--border)' },
-  timelineLabel: { fontSize: '11px', letterSpacing: '0.06em', margin: '0 8px', whiteSpace: 'nowrap' },
-  timelineLine:  { width: '40px', height: '1px', flexShrink: 0 },
-  tabBar:   { display: 'flex', borderBottom: '1px solid var(--border)', background: 'var(--surface)', padding: '0 24px' },
-  tabBtn:   { background: 'none', border: 'none', borderBottom: '2px solid transparent', padding: '10px 16px', fontSize: '11px', letterSpacing: '0.08em', color: 'var(--text-muted)', cursor: 'pointer', marginBottom: '-1px', fontFamily: 'var(--font)' },
-  tabActive: { color: 'var(--bronze)', borderBottomColor: 'var(--bronze)' },
+
+  // New header
+  header:        { display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', padding: '20px 32px 24px', borderBottom: '1.5px solid var(--border)', gap: '24px', flexWrap: 'wrap' },
+  headerLeft:    { display: 'flex', flexDirection: 'column', gap: '2px' },
+  headerActions: { display: 'flex', gap: '8px', alignItems: 'center', paddingTop: '4px', flexShrink: 0 },
+  back:       { fontSize: '11px', color: 'var(--text-muted)', letterSpacing: '0.06em', marginBottom: '6px', display: 'block' },
+  title:      { fontFamily: 'var(--font-display)', fontSize: 'clamp(28px, 4vw, 52px)', fontWeight: 900, color: 'var(--green)', lineHeight: 1, letterSpacing: '-0.01em', fontVariationSettings: '"YEAR" 2050' },
+  artist:     { fontSize: '13px', color: 'var(--text-muted)', marginTop: '4px' },
+  stagePill:  { display: 'inline-block', background: 'var(--pink)', color: 'var(--green)', fontSize: '11px', padding: '4px 14px', borderRadius: 'var(--radius-pill)', letterSpacing: '0.05em', marginTop: '10px', fontWeight: 500 },
+  retreatBtn: { background: 'var(--surface-2)', border: '1.5px solid var(--border)', borderRadius: 'var(--radius-pill)', padding: '8px 16px', fontSize: '11px', letterSpacing: '0.04em', cursor: 'pointer', color: 'var(--text-muted)', fontFamily: 'var(--font)' },
+  advanceBtn: { background: 'var(--pink)', color: 'var(--green)', border: 'none', borderRadius: 'var(--radius-pill)', padding: '9px 20px', fontSize: '12px', letterSpacing: '0.04em', cursor: 'pointer', fontFamily: 'var(--font)', fontWeight: 500 },
+
   body:    { display: 'flex', flex: 1, alignItems: 'flex-start' },
-  main:    { flex: 1, padding: '24px', display: 'flex', flexDirection: 'column', gap: '20px', minWidth: 0 },
-  sidebar: { width: '280px', flexShrink: 0, padding: '24px', borderLeft: '1px solid var(--border)' },
+  main:    { flex: 1, padding: '28px 32px', display: 'flex', flexDirection: 'column', gap: '20px', minWidth: 0 },
+  sidebar: { width: '280px', flexShrink: 0, padding: '28px 24px', borderLeft: '1px solid var(--border)' },
   section: { background: 'var(--surface)', border: '1px solid var(--border)', padding: '20px' },
   sectionHeader: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' },
   sectionTitle:  { fontSize: '11px', letterSpacing: '0.1em', fontWeight: 500, textTransform: 'uppercase' },
