@@ -226,9 +226,9 @@ function TrackFormModal({ onClose, onSaved, initialTrack }) {
       }
 
       if (isEdit) {
-        const { data, error: updateErr } = await supabase.from('tracks').update(payload).eq('id', initialTrack.id).select().single()
+        const { error: updateErr } = await supabase.from('tracks').update(payload).eq('id', initialTrack.id)
         if (updateErr) throw new Error(updateErr.message)
-        onSaved(data)
+        onSaved({ ...initialTrack, ...payload })
       } else {
         payload.submitted_by = profile?.id
         const { data, error: insertErr } = await supabase.from('tracks').insert(payload).select().single()
