@@ -915,13 +915,26 @@ function BriefingButtons({ release }) {
 
   async function handleAds() {
     setAdsSending(true)
+
+    let trackLine = ''
+    if (track.file_url) {
+      const { data } = await supabase.storage.from('tracks').createSignedUrl(track.file_url, 60 * 60 * 24 * 7)
+      if (data?.signedUrl) trackLine = `\nTrack: ${data.signedUrl}`
+    }
+
     let artworkLine = ''
     if (release.artwork_url) {
       const { data } = await supabase.storage.from('tracks').createSignedUrl(release.artwork_url, 60 * 60 * 24 * 7)
       if (data?.signedUrl) artworkLine = `\nArtwork: ${data.signedUrl}`
     }
-    const msg = `*${track.title ?? 'Track'}*${track.artist && track.artist !== 'TBC' ? ` by ${track.artist}` : ''}${artworkLine}\n\nPlease use the artwork above for the ads campaign.`
-    window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank')
+
+    const parts = [
+      `*${track.title ?? 'Track'}*${track.artist && track.artist !== 'TBC' ? ` by ${track.artist}` : ''}`,
+      trackLine,
+      artworkLine || '\n⚠️ No artwork uploaded yet — add it via the distribution checklist.',
+    ]
+
+    window.open(`https://wa.me/?text=${encodeURIComponent(parts.join(''))}`, '_blank')
     setAdsSending(false)
   }
 
