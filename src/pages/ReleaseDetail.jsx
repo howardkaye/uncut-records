@@ -890,14 +890,19 @@ function BriefingButtons({ release }) {
 
   async function handleCC() {
     if (!ccEmail.trim()) return
+    // Fetch fresh release to pick up artwork uploaded after page load
+    const { data: fresh } = await supabase
+      .from('releases').select('artwork_url').eq('id', release.id).single()
+    const artworkPath = fresh?.artwork_url ?? release.artwork_url
+
     let trackLine = ''
     if (track.file_url) {
       const { data } = await supabase.storage.from('tracks').createSignedUrl(track.file_url, 60 * 60 * 24 * 7)
       if (data?.signedUrl) trackLine = `\nTrack (7-day link): ${data.signedUrl}`
     }
     let artworkLine = ''
-    if (release.artwork_url) {
-      const { data } = await supabase.storage.from('tracks').createSignedUrl(release.artwork_url, 60 * 60 * 24 * 7)
+    if (artworkPath) {
+      const { data } = await supabase.storage.from('tracks').createSignedUrl(artworkPath, 60 * 60 * 24 * 7)
       if (data?.signedUrl) artworkLine = `\nArtwork (7-day link): ${data.signedUrl}`
     }
     const subject = encodeURIComponent(`Brief: ${track.title ?? 'Track'}${track.artist && track.artist !== 'TBC' ? ` — ${track.artist}` : ''}`)
@@ -916,6 +921,11 @@ function BriefingButtons({ release }) {
   async function handleAds() {
     setAdsSending(true)
 
+    // Fetch fresh release data so we pick up artwork uploaded after page load
+    const { data: fresh } = await supabase
+      .from('releases').select('artwork_url').eq('id', release.id).single()
+    const artworkPath = fresh?.artwork_url ?? release.artwork_url
+
     let trackLine = ''
     if (track.file_url) {
       const { data } = await supabase.storage.from('tracks').createSignedUrl(track.file_url, 60 * 60 * 24 * 7)
@@ -923,8 +933,8 @@ function BriefingButtons({ release }) {
     }
 
     let artworkLine = ''
-    if (release.artwork_url) {
-      const { data } = await supabase.storage.from('tracks').createSignedUrl(release.artwork_url, 60 * 60 * 24 * 7)
+    if (artworkPath) {
+      const { data } = await supabase.storage.from('tracks').createSignedUrl(artworkPath, 60 * 60 * 24 * 7)
       if (data?.signedUrl) artworkLine = `\nArtwork: ${data.signedUrl}`
     }
 
