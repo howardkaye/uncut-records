@@ -880,6 +880,24 @@ function PerformanceTab({ releaseId, isCoordinator }) {
 }
 
 // ─────────────────────────────────────────────
+// Shorten a URL via TinyURL (no API key needed)
+// ─────────────────────────────────────────────
+async function shorten(url) {
+  try {
+    const r = await fetch(`https://tinyurl.com/api-create.php?url=${encodeURIComponent(url)}`)
+    const s = await r.text()
+    return s.startsWith('http') ? s.trim() : url
+  } catch { return url }
+}
+
+async function signedShort(path) {
+  if (!path) return null
+  const { data } = await supabase.storage.from('tracks').createSignedUrl(path, 60 * 60 * 24 * 7)
+  if (!data?.signedUrl) return null
+  return shorten(data.signedUrl)
+}
+
+// ─────────────────────────────────────────────
 // Briefing Buttons — Content Creator + Ads Team
 // ─────────────────────────────────────────────
 function BriefingButtons({ release }) {
@@ -890,21 +908,17 @@ function BriefingButtons({ release }) {
 
   async function handleCC() {
     if (!ccEmail.trim()) return
-    // Fetch fresh release to pick up artwork uploaded after page load
     const { data: fresh } = await supabase
       .from('releases').select('artwork_url').eq('id', release.id).single()
     const artworkPath = fresh?.artwork_url ?? release.artwork_url
 
-    let trackLine = ''
-    if (track.file_url) {
-      const { data } = await supabase.storage.from('tracks').createSignedUrl(track.file_url, 60 * 60 * 24 * 7)
-      if (data?.signedUrl) trackLine = `\nTrack (7-day link): ${data.signedUrl}`
-    }
-    let artworkLine = ''
-    if (artworkPath) {
-      const { data } = await supabase.storage.from('tracks').createSignedUrl(artworkPath, 60 * 60 * 24 * 7)
-      if (data?.signedUrl) artworkLine = `\nArtwork (7-day link): ${data.signedUrl}`
-    }
+    const [trackUrl, artworkUrl] = await Promise.all([
+      signedShort(track.file_url),
+      signedShort(artworkPath),
+    ])
+
+    const trackLine   = trackUrl   ? `\nTrack: ${trackUrl}`   : ''
+    const artworkLine = artworkUrl ? `\nArtwork: ${artworkUrl}` : ''
     const subject = encodeURIComponent(`Brief: ${track.title ?? 'Track'}${track.artist && track.artist !== 'TBC' ? ` — ${track.artist}` : ''}`)
     const body = encodeURIComponent(
       `Hi,\n\nDetails for the upcoming release:\n\n` +
@@ -921,30 +935,25 @@ function BriefingButtons({ release }) {
   async function handleAds() {
     setAdsSending(true)
 
-    // Fetch fresh release data so we pick up artwork uploaded after page load
     const { data: fresh } = await supabase
       .from('releases').select('artwork_url').eq('id', release.id).single()
     const artworkPath = fresh?.artwork_url ?? release.artwork_url
 
-    let trackLine = ''
-    if (track.file_url) {
-      const { data } = await supabase.storage.from('tracks').createSignedUrl(track.file_url, 60 * 60 * 24 * 7)
-      if (data?.signedUrl) trackLine = `\nTrack: ${data.signedUrl}`
-    }
+    const [trackUrl, artworkUrl] = await Promise.all([
+      signedShort(track.file_url),
+      signedShort(artworkPath),
+    ])
 
-    let artworkLine = ''
-    if (artworkPath) {
-      const { data } = await supabase.storage.from('tracks').createSignedUrl(artworkPath, 60 * 60 * 24 * 7)
-      if (data?.signedUrl) artworkLine = `\nArtwork: ${data.signedUrl}`
-    }
+    const trackLine   = trackUrl   ? `\nTrack: ${trackUrl}`   : '\n⚠️ No track file uploaded yet.'
+    const artworkLine = artworkUrl ? `\nArtwork: ${artworkUrl}` : '\n⚠️ No artwork uploaded yet — add via the distribution checklist.'
 
-    const parts = [
+    const msg = [
       `*${track.title ?? 'Track'}*${track.artist && track.artist !== 'TBC' ? ` by ${track.artist}` : ''}`,
       trackLine,
-      artworkLine || '\n⚠️ No artwork uploaded yet — add it via the distribution checklist.',
-    ]
+      artworkLine,
+    ].join('')
 
-    window.open(`https://wa.me/?text=${encodeURIComponent(parts.join(''))}`, '_blank')
+    window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank')
     setAdsSending(false)
   }
 
