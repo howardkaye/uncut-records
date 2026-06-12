@@ -260,11 +260,16 @@ function AdsLogForm({ releaseId, onSaved }) {
   )
 }
 
-function AdsSection({ reports }) {
+function AdsSection({ reports, onDeleted }) {
   if (!reports || reports.length === 0) return null
   const latest = reports[0]
   const fmtGbp = n => n != null ? `£${parseFloat(n).toFixed(2)}` : '—'
   const fmtN   = n => n != null ? parseInt(n).toLocaleString() : '—'
+
+  async function handleDelete() {
+    await supabase.from('ads_reports').delete().eq('id', latest.id)
+    onDeleted()
+  }
 
   return (
     <div style={{ marginTop: '16px', padding: '14px 16px', background: 'var(--surface-2)', borderRadius: '10px', border: '1px solid var(--border)' }}>
@@ -278,6 +283,11 @@ function AdsSection({ reports }) {
               {new Date(latest.report_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
             </span>
           )}
+          <button onClick={handleDelete}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: '14px', lineHeight: 1, padding: '2px 4px', borderRadius: '4px' }}
+            title="Delete this ads report">
+            ×
+          </button>
         </div>
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0', marginBottom: '10px' }}>
@@ -528,7 +538,7 @@ export default function Reports() {
                 </div>
 
                 {/* Ads section */}
-                <AdsSection reports={r._ads} />
+                <AdsSection reports={r._ads} onDeleted={fetchData} />
 
                 {r.notes && (
                   <div style={s.notesBlock}>
