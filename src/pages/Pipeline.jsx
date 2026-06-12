@@ -558,7 +558,8 @@ const s = {
     padding: '16px 24px 24px',
   },
   column: {
-    flex: '0 0 210px',
+    flex: '1 1 210px',
+    maxWidth: '360px',
     display: 'flex',
     flexDirection: 'column',
     border: '1.5px solid var(--border)',
