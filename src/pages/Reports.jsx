@@ -147,14 +147,254 @@ function LogDataForm({ releaseId, onSaved }) {
   )
 }
 
+function AdsReportForm({ releases, onSaved }) {
+  const [open, setOpen]     = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [form, setForm]     = useState({
+    release_id: '',
+    report_date: new Date().toISOString().slice(0, 10),
+    amount_spent: '', impressions: '', link_clicks: '', service_clicks: '',
+    pre_saves: '', cpc: '', cpsc: '', cpps: '',
+    top_creative_url: '', top_creative_clicks: '', notes: '',
+  })
+
+  function set(key) { return e => setForm(p => ({ ...p, [key]: e.target.value })) }
+
+  async function handleSubmit(e) {
+    e.preventDefault()
+    if (!form.release_id) return
+    setSaving(true)
+    const { error } = await supabase.from('ads_reports').insert({
+      release_id:           form.release_id,
+      report_date:          form.report_date,
+      amount_spent:         parseFloat(form.amount_spent)         || null,
+      impressions:          parseInt(form.impressions)            || null,
+      link_clicks:          parseInt(form.link_clicks)            || null,
+      service_clicks:       parseInt(form.service_clicks)         || null,
+      pre_saves:            parseInt(form.pre_saves)              || null,
+      cpc:                  parseFloat(form.cpc)                  || null,
+      cpsc:                 parseFloat(form.cpsc)                 || null,
+      cpps:                 parseFloat(form.cpps)                 || null,
+      top_creative_url:     form.top_creative_url.trim()          || null,
+      top_creative_clicks:  parseInt(form.top_creative_clicks)    || null,
+      notes:                form.notes.trim()                     || null,
+    })
+    if (!error) {
+      setForm(p => ({ ...p, release_id: '', amount_spent: '', impressions: '', link_clicks: '',
+        service_clicks: '', pre_saves: '', cpc: '', cpsc: '', cpps: '',
+        top_creative_url: '', top_creative_clicks: '', notes: '' }))
+      setOpen(false)
+      onSaved()
+    }
+    setSaving(false)
+  }
+
+  const inputStyle = {
+    width: '100%', background: 'var(--bg)', border: '1px solid var(--border)',
+    padding: '6px 8px', fontSize: '11px', fontFamily: 'var(--font)',
+    color: 'var(--text)', boxSizing: 'border-box',
+  }
+  const labelStyle = {
+    fontSize: '10px', letterSpacing: '0.08em', color: 'var(--text-muted)',
+    textTransform: 'uppercase', marginBottom: '4px',
+  }
+
+  return (
+    <div style={{ background: 'var(--surface)', border: '1.5px solid var(--border)', borderRadius: '16px', padding: '20px 24px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: open ? '20px' : '0' }}>
+        <div style={{ fontSize: '13px', fontWeight: 500, color: 'var(--green)' }}>Add Ads Report</div>
+        {!open && (
+          <button
+            onClick={() => setOpen(true)}
+            style={{ background: 'var(--pink)', color: 'var(--green)', border: 'none', borderRadius: 'var(--radius-pill)', padding: '7px 20px', fontSize: '11px', letterSpacing: '0.06em', cursor: 'pointer', fontFamily: 'var(--font)', fontWeight: 600 }}>
+            + add report
+          </button>
+        )}
+      </div>
+      {open && (
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+          {/* Row 1: Release + Date */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 160px', gap: '10px' }}>
+            <div>
+              <div style={labelStyle}>Release</div>
+              <select value={form.release_id} onChange={set('release_id')} required
+                style={{ ...inputStyle }}>
+                <option value="">— select release —</option>
+                {releases.map(r => (
+                  <option key={r.id} value={r.id}>
+                    {r.track?.title ?? r.id} {r.track?.artist ? `— ${r.track.artist}` : ''}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <div style={labelStyle}>Report Date</div>
+              <input type="date" style={inputStyle} value={form.report_date} onChange={set('report_date')} />
+            </div>
+          </div>
+
+          {/* Row 2: Spend metrics */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '10px' }}>
+            {[
+              { label: 'Amount Spent (£)', key: 'amount_spent', placeholder: '146.36' },
+              { label: 'Impressions',       key: 'impressions',    placeholder: '26380' },
+              { label: 'Link Clicks',       key: 'link_clicks',    placeholder: '1706' },
+              { label: 'Service Clicks',    key: 'service_clicks', placeholder: '1408' },
+            ].map(f => (
+              <div key={f.key}>
+                <div style={labelStyle}>{f.label}</div>
+                <input type="number" step="any" style={inputStyle} placeholder={f.placeholder}
+                  value={form[f.key]} onChange={set(f.key)} />
+              </div>
+            ))}
+          </div>
+
+          {/* Row 3: Cost metrics */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '10px' }}>
+            {[
+              { label: 'Pre-Saves', key: 'pre_saves', placeholder: '379' },
+              { label: 'CPC (£)',   key: 'cpc',       placeholder: '0.09' },
+              { label: 'CPSC (£)',  key: 'cpsc',      placeholder: '0.10' },
+              { label: 'CPPS (£)',  key: 'cpps',      placeholder: '0.39' },
+            ].map(f => (
+              <div key={f.key}>
+                <div style={labelStyle}>{f.label}</div>
+                <input type="number" step="any" style={inputStyle} placeholder={f.placeholder}
+                  value={form[f.key]} onChange={set(f.key)} />
+              </div>
+            ))}
+          </div>
+
+          {/* Row 4: Top creative */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 140px', gap: '10px' }}>
+            <div>
+              <div style={labelStyle}>Top Creative URL</div>
+              <input type="url" style={inputStyle} placeholder="https://www.instagram.com/p/..."
+                value={form.top_creative_url} onChange={set('top_creative_url')} />
+            </div>
+            <div>
+              <div style={labelStyle}>Clicks</div>
+              <input type="number" style={inputStyle} placeholder="1394"
+                value={form.top_creative_clicks} onChange={set('top_creative_clicks')} />
+            </div>
+          </div>
+
+          {/* Row 5: Notes */}
+          <div>
+            <div style={labelStyle}>Notes (optional)</div>
+            <input style={inputStyle} placeholder="Any additional context..."
+              value={form.notes} onChange={set('notes')} />
+          </div>
+
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button type="submit" disabled={saving}
+              style={{ background: 'var(--pink)', color: 'var(--green)', border: 'none', borderRadius: 'var(--radius-pill)', padding: '7px 20px', fontSize: '11px', letterSpacing: '0.06em', cursor: 'pointer', fontFamily: 'var(--font)' }}>
+              {saving ? 'saving…' : 'save report'}
+            </button>
+            <button type="button" onClick={() => setOpen(false)}
+              style={{ background: 'none', border: '1.5px solid var(--border)', borderRadius: 'var(--radius-pill)', padding: '7px 14px', fontSize: '11px', color: 'var(--text-muted)', cursor: 'pointer', fontFamily: 'var(--font)' }}>
+              cancel
+            </button>
+          </div>
+        </form>
+      )}
+    </div>
+  )
+}
+
+function AdsReportCard({ report: r }) {
+  const track = r.release?.track
+  const fmtGbp = n => n != null ? `£${parseFloat(n).toFixed(2)}` : '—'
+  const fmtGbpSmall = n => n != null ? `£${parseFloat(n).toFixed(2)}` : '—'
+  const fmtN = n => n != null ? parseInt(n).toLocaleString() : '—'
+
+  return (
+    <div style={{ background: 'var(--surface)', border: '1.5px solid var(--border)', borderRadius: '16px', padding: '20px 24px' }}>
+      {/* Header */}
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '16px' }}>
+        <div>
+          <div style={{ fontSize: '15px', fontWeight: 500, color: 'var(--green)', marginBottom: '2px' }}>
+            {track?.title ?? '—'}
+          </div>
+          <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{track?.artist ?? '—'}</div>
+        </div>
+        <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+          <span style={{ fontSize: '20px', fontWeight: 600, color: 'var(--text)', letterSpacing: '-0.02em' }}>
+            {fmtGbp(r.amount_spent)}
+          </span>
+          <span style={{ fontSize: '10px', letterSpacing: '0.06em', color: 'var(--text-muted)', textTransform: 'uppercase' }}>spent</span>
+          {r.report_date && (
+            <span style={{ fontSize: '10px', letterSpacing: '0.04em', color: 'var(--text-muted)', border: '1px solid var(--border)', background: 'var(--surface-2)', padding: '2px 8px', borderRadius: 'var(--radius-pill)', marginLeft: '6px' }}>
+              {new Date(r.report_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+            </span>
+          )}
+        </div>
+      </div>
+
+      <div style={{ height: '1px', background: 'var(--border)', marginBottom: '16px' }} />
+
+      {/* Stats grid */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0', marginBottom: '16px' }}>
+        {[
+          { label: 'Impressions',    value: fmtN(r.impressions) },
+          { label: 'Link Clicks',    value: fmtN(r.link_clicks) },
+          { label: 'Service Clicks', value: fmtN(r.service_clicks) },
+          { label: 'Pre-Saves',      value: fmtN(r.pre_saves) },
+        ].map(stat => (
+          <div key={stat.label} style={{ paddingRight: '16px' }}>
+            <div style={{ fontSize: '20px', fontWeight: 500, color: 'var(--text)', letterSpacing: '-0.02em', marginBottom: '2px' }}>{stat.value}</div>
+            <div style={{ fontSize: '10px', letterSpacing: '0.08em', color: 'var(--text-muted)', textTransform: 'uppercase' }}>{stat.label}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Cost metrics */}
+      <div style={{ display: 'flex', gap: '16px', marginBottom: r.top_creative_url || r.notes ? '16px' : '0' }}>
+        {[
+          { label: 'CPC',  value: fmtGbpSmall(r.cpc) },
+          { label: 'CPSC', value: fmtGbpSmall(r.cpsc) },
+          { label: 'CPPS', value: fmtGbpSmall(r.cpps) },
+        ].map(m => (
+          <div key={m.label} style={{ background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: '8px', padding: '8px 14px', display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: '72px' }}>
+            <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text)', letterSpacing: '-0.01em' }}>{m.value}</div>
+            <div style={{ fontSize: '10px', letterSpacing: '0.08em', color: 'var(--text-muted)', textTransform: 'uppercase', marginTop: '2px' }}>{m.label}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Top creative */}
+      {r.top_creative_url && (
+        <div style={{ marginTop: '14px', display: 'flex', gap: '8px', alignItems: 'center' }}>
+          <span style={{ fontSize: '10px', letterSpacing: '0.08em', color: 'var(--text-muted)', textTransform: 'uppercase', flexShrink: 0 }}>Top Creative</span>
+          <a href={r.top_creative_url} target="_blank" rel="noreferrer"
+            style={{ fontSize: '12px', color: 'var(--bronze)', textDecoration: 'none', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
+            {r.top_creative_url}
+          </a>
+          {r.top_creative_clicks != null && (
+            <span style={{ fontSize: '11px', color: 'var(--text-muted)', flexShrink: 0 }}>{fmtN(r.top_creative_clicks)} clicks</span>
+          )}
+        </div>
+      )}
+
+      {r.notes && (
+        <div style={{ marginTop: '10px', display: 'flex', gap: '10px', alignItems: 'baseline' }}>
+          <span style={{ fontSize: '10px', letterSpacing: '0.08em', color: 'var(--text-muted)', textTransform: 'uppercase', flexShrink: 0 }}>Notes</span>
+          <span style={{ fontSize: '12px', color: 'var(--text)', lineHeight: 1.5 }}>{r.notes}</span>
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function Reports() {
   const navigate = useNavigate()
   const [releases,      setReleases]      = useState([])
   const [teaseReleases, setTeaseReleases] = useState([])
+  const [adsReports,    setAdsReports]    = useState([])
   const [loading,       setLoading]       = useState(true)
   const [copied,        setCopied]        = useState(false)
   const [stageFilter,   setStageFilter]   = useState('all')
-  const [activeTab,     setActiveTab]     = useState('performance') // 'performance' | 'tease'
+  const [activeTab,     setActiveTab]     = useState('performance') // 'performance' | 'tease' | 'ads'
 
   useEffect(() => { fetchData() }, [])
 
@@ -165,7 +405,6 @@ export default function Reports() {
       .neq('archived', true)
       .order('release_date', { ascending: false })
 
-    // Fetch releases that have tease reports (tease_window or reporting)
     supabase
       .from('releases')
       .select('*, track:tracks(*)')
@@ -173,6 +412,12 @@ export default function Reports() {
       .neq('archived', true)
       .order('created_at', { ascending: false })
       .then(({ data }) => setTeaseReleases(data ?? []))
+
+    supabase
+      .from('ads_reports')
+      .select('*, release:releases(id, track:tracks(title, artist))')
+      .order('report_date', { ascending: false })
+      .then(({ data }) => setAdsReports(data ?? []))
 
     if (!rels) { setLoading(false); return }
 
@@ -253,6 +498,11 @@ export default function Reports() {
           onClick={() => setActiveTab('tease')}>
           Tease Reports {teaseReleases.length > 0 && `(${teaseReleases.length})`}
         </button>
+        <button
+          style={{ ...s.tabBtn, ...(activeTab === 'ads' ? s.tabActive : {}) }}
+          onClick={() => setActiveTab('ads')}>
+          Ads Reports {adsReports.length > 0 && `(${adsReports.length})`}
+        </button>
       </div>
 
       {/* Tease Reports tab */}
@@ -273,6 +523,24 @@ export default function Reports() {
               </div>
               <TeaseReportsView release={r} />
             </div>
+          ))}
+        </div>
+      )}
+
+      {/* Ads Reports tab */}
+      {activeTab === 'ads' && (
+        <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          <AdsReportForm releases={releases} onSaved={() => {
+            supabase
+              .from('ads_reports')
+              .select('*, release:releases(id, track:tracks(title, artist))')
+              .order('report_date', { ascending: false })
+              .then(({ data }) => setAdsReports(data ?? []))
+          }} />
+          {adsReports.length === 0 ? (
+            <div style={s.empty}>No ads reports yet. Add the first one above.</div>
+          ) : adsReports.map(r => (
+            <AdsReportCard key={r.id} report={r} />
           ))}
         </div>
       )}
