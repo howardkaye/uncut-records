@@ -9,8 +9,13 @@ const STAGES = [
   { key: 'intake',        label: 'Selected' },
   { key: 'pre_release',   label: 'Preparing' },
   { key: 'tease_window',  label: 'In Market' },
-  { key: 'reporting',     label: 'Reporting' },
 ]
+
+const NEXT_STAGE = {
+  intake:       'pre_release',
+  pre_release:  'tease_window',
+  tease_window: 'reporting',
+}
 
 function nextMonday() {
   const d = new Date()
@@ -49,9 +54,11 @@ const STAGE_GATES = {
     note: 'Tease start date will be set to next Monday.',
     cta: 'Yes, go In Market',
   },
-  'tease_window→released': {
-    title: 'Confirm release?',
-    checks: [], note: null, cta: 'Yes, confirm release',
+  'tease_window→reporting': {
+    title: 'Done in pipeline?',
+    checks: [],
+    note: 'This release will leave the pipeline and appear in Reporting.',
+    cta: 'Yes, move to Reporting',
   },
 }
 
@@ -64,7 +71,7 @@ function daysInStage(release) {
 function ReleaseCard({ release, onMove, onRequestAdvance, onRemove, onArchive, isCoordinator }) {
   const { track, stage } = release
   const stageIdx = STAGES.findIndex(s => s.key === stage)
-  const canAdvance = stageIdx < STAGES.length - 1
+  const canAdvance = !!NEXT_STAGE[stage]
   const canRetreat = stageIdx > 0
   const [confirmRemove, setConfirmRemove] = useState(false)
 
@@ -121,7 +128,7 @@ function ReleaseCard({ release, onMove, onRequestAdvance, onRemove, onArchive, i
           <div style={{ flex: 1 }} />
           {canAdvance && (
             <button style={{ ...s.moveBtn, borderColor: 'var(--green)', color: 'var(--green)' }}
-              onClick={() => onRequestAdvance(release, STAGES[stageIdx + 1].key)}>→</button>
+              onClick={() => onRequestAdvance(release, NEXT_STAGE[stage])}>→</button>
           )}
         </div>
       )}
@@ -377,6 +384,7 @@ export default function Pipeline() {
       .from('releases')
       .select('*, track:tracks(*)')
       .neq('archived', true)
+      .in('stage', ['intake', 'pre_release', 'tease_window'])
       .order('created_at', { ascending: true })
 
     if (!error) setReleases(data)
